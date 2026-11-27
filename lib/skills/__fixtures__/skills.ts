@@ -348,7 +348,6 @@ const page = (numbers: SkillsNumbers, rows: SkillsFix[], courses: SkillsCourse[]
   login: SKILLS_LOGIN,
   numbers,
   fixes: { rows, total: rows.length, next: null },
-  built: [],
   courses,
   indexable: true,
 });

@@ -2,6 +2,7 @@ import { createHash } from 'node:crypto';
 import { readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 
+import { type DocumentNode, print } from 'graphql';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it, vi } from 'vitest';
 
@@ -10,64 +11,82 @@ vi.hoisted(() => {
   process.env.NEXT_PUBLIC_URI = 'https://gitranks.com';
 });
 
-import { SkillsBlock } from './skills-block';
-import { SkillsPageView } from './skills-page-view';
-import { SkillsStart } from './skills-start';
-import { SkillsStrip } from './skills-strip';
-import {
-  bothPage,
-  contributorPage,
-  firstFixPage,
-  firstLessonPage,
-  learnerPage,
-  longPage,
-  SKILLS_LOGIN,
-  SKILLS_NOW,
-  skillsMine,
-} from '@/lib/skills/__fixtures__/skills';
-import { skillsMetadataOf } from '@/lib/skills/seo';
-import type { SkillsMine, SkillsPage } from '@/lib/skills/skills.types';
-import { skillsMarkdownOf } from '@/lib/skills/skills-markdown';
-import { otherBoxOf } from '@/lib/skills/skills-owner';
-import { skillsCardOf } from '@/lib/skills/skills-share-card';
+const api = vi.hoisted(() => ({ page: null as unknown }));
+vi.mock('server-only', () => ({}));
+vi.mock('next/cache', () => ({ cacheLife: () => {}, cacheTag: () => {} }));
+// The API as it answers while Build is not open to everyone: a document that asks the Built rows gets none.
+vi.mock('@/lib/graphql/graphql-direct', () => ({
+  graphqlDirect: async (document: DocumentNode) => {
+    const page = api.page as Record<string, unknown>;
+    return { skillsPage: /\bbuilt\s*\{/.test(print(document)) ? { ...page, built: [] } : page };
+  },
+}));
+// A visitor, signed out: the public screen as the route serves it.
+vi.mock('next-auth/react', () => ({ useSession: () => ({ data: null, status: 'unauthenticated' }) }));
+vi.mock('@/app/profile/[login]/components/skills-hidden.actions', () => ({ setSkillsHiddenAction: () => {} }));
+
+const { SkillsScreen } = await import('@/app/profile/[login]/components/skills-screen');
+const { SkillsBlock } = await import('./skills-block');
+const { SkillsPageView } = await import('./skills-page-view');
+const { SkillsStart } = await import('./skills-start');
+const { SkillsStrip } = await import('./skills-strip');
+const fixtures = await import('@/lib/skills/__fixtures__/skills');
+const { skillsMetadataOf } = await import('@/lib/skills/seo');
+const { loadSkillsPage } = await import('@/lib/skills/skills.data');
+const { skillsMarkdownOf } = await import('@/lib/skills/skills-markdown');
+const { otherBoxOf } = await import('@/lib/skills/skills-owner');
+const { skillsCardOf } = await import('@/lib/skills/skills-share-card');
+
+type Page = typeof fixtures.contributorPage;
+type Mine = (typeof fixtures.skillsMine)[keyof typeof fixtures.skillsMine];
 
 /*
  * A Skills page with nothing of Build in its answer, compared with the page served before Build's "Built" section came,
- * byte for byte: the page, the owner's view of it, the profile's block, the Markdown copy, the share picture and the
- * metadata. Until Build is open to everyone the API sends every public page that way, so everyone gets exactly
- * today's page. `__fixtures__/skills-today.json` keeps each case's SHA-256; to save them again after a change made on
- * purpose to today's page, run this spec with `WRITE_TODAY=1`.
+ * byte for byte: the page's data as the route hands it to the browser, the screen it serves, the page with "Show 20
+ * more", the owner's view of it, the profile's block, the Markdown copy, the share picture and the metadata. Until
+ * Build is open to everyone the API sends every public page that way, so everyone gets exactly today's page.
+ * `__fixtures__/skills-today.json` keeps each case's SHA-256; to save them again after a change made on purpose to
+ * today's page, run this spec with `WRITE_TODAY=1`.
  */
 
-const PAGES: [name: string, page: SkillsPage][] = [
-  ['contributor', contributorPage],
-  ['first fix', firstFixPage],
-  ['learner', learnerPage],
-  ['first lesson', firstLessonPage],
-  ['both', bothPage],
-  ['long', longPage],
+const PAGES: [name: string, page: Page][] = [
+  ['contributor', fixtures.contributorPage],
+  ['first fix', fixtures.firstFixPage],
+  ['learner', fixtures.learnerPage],
+  ['first lesson', fixtures.firstLessonPage],
+  ['both', fixtures.bothPage],
+  ['long', fixtures.longPage],
 ];
 
-const MINES: [name: string, mine: SkillsMine][] = Object.entries(skillsMine);
+const MINES: [name: string, mine: Mine][] = Object.entries(fixtures.skillsMine);
 
 const hashOf = (text: string) => createHash('sha256').update(text).digest('hex');
+const noop = () => {};
 
 /** Every case's text, by name. */
-function casesOf(): Record<string, string> {
+async function casesOf(): Promise<Record<string, string>> {
   const cases: Record<string, string> = {};
-  for (const [name, page] of PAGES) {
-    cases[`page: ${name}`] = renderToStaticMarkup(<SkillsPageView page={page} now={SKILLS_NOW} />);
-    cases[`block: ${name}`] = renderToStaticMarkup(<SkillsBlock login={SKILLS_LOGIN} numbers={page.numbers} />);
-    cases[`markdown: ${name}`] = skillsMarkdownOf(page, { now: SKILLS_NOW });
+  const now = fixtures.SKILLS_NOW;
+  for (const [name, fixture] of PAGES) {
+    api.page = fixture;
+    const read = await loadSkillsPage(fixtures.SKILLS_LOGIN);
+    const page = read.value as Page;
+    cases[`data: ${name}`] = JSON.stringify(read);
+    cases[`screen: ${name}`] = renderToStaticMarkup(
+      <SkillsScreen login={fixtures.SKILLS_LOGIN} page={page} now={now} />,
+    );
+    cases[`page: ${name}`] = renderToStaticMarkup(<SkillsPageView page={page} now={now} onMore={noop} />);
+    cases[`block: ${name}`] = renderToStaticMarkup(
+      <SkillsBlock login={fixtures.SKILLS_LOGIN} numbers={page.numbers} />,
+    );
+    cases[`markdown: ${name}`] = skillsMarkdownOf(page, { now });
     cases[`card: ${name}`] = JSON.stringify(skillsCardOf(page));
     cases[`metadata: ${name}`] = JSON.stringify(skillsMetadataOf(page, { name: 'The Octocat' }));
   }
   for (const [name, mine] of MINES) {
-    const strip = <SkillsStrip mine={mine} href="/profile/octocat/skills" onHide={() => {}} onShow={() => {}} />;
+    const strip = <SkillsStrip mine={mine} href="/profile/octocat/skills" onHide={noop} onShow={noop} />;
     cases[`owner: ${name}`] = mine.page
-      ? renderToStaticMarkup(
-          <SkillsPageView page={mine.page} now={SKILLS_NOW} strip={strip} other={otherBoxOf(mine)} />,
-        )
+      ? renderToStaticMarkup(<SkillsPageView page={mine.page} now={now} strip={strip} other={otherBoxOf(mine)} />)
       : renderToStaticMarkup(
           <>
             {strip}
@@ -82,8 +101,9 @@ const FILE = join(import.meta.dirname, '__fixtures__', 'skills-today.json');
 
 describe("a Skills page with nothing of Build is today's page", () => {
   if (process.env.WRITE_TODAY) {
-    it('saves the markup', () => {
-      const today = Object.fromEntries(Object.entries(casesOf()).map(([name, text]) => [name, hashOf(text)]));
+    it('saves the markup', async () => {
+      const cases = await casesOf();
+      const today = Object.fromEntries(Object.entries(cases).map(([name, text]) => [name, hashOf(text)]));
       writeFileSync(FILE, `${JSON.stringify(today, null, 2)}\n`);
     });
     return;
@@ -92,19 +112,24 @@ describe("a Skills page with nothing of Build is today's page", () => {
   const today = JSON.parse(readFileSync(FILE, 'utf8')) as Record<string, string>;
   const cases = casesOf();
 
-  it('has every case saved', () => {
-    expect(Object.keys(cases).sort()).toEqual(Object.keys(today).sort());
+  it('has every case saved', async () => {
+    expect(Object.keys(await cases).sort()).toEqual(Object.keys(today).sort());
   });
 
-  it.each(Object.keys(today))('%s, byte for byte', (name) => {
-    expect(hashOf(cases[name] ?? '')).toBe(today[name]);
+  it.each(Object.keys(today))('%s, byte for byte', async (name) => {
+    expect(hashOf((await cases)[name] ?? '')).toBe(today[name]);
   });
 
-  it('names nothing of Build', () => {
-    for (const text of Object.values(cases)) {
+  it('names nothing of Build', async () => {
+    for (const text of Object.values(await cases)) {
       expect(text).not.toContain('/build');
       expect(text).not.toContain('GitRanks Build');
-      expect(text).not.toMatch(/\bBuilt\b|projects? built/);
+      expect(text).not.toMatch(/\bBuilt\b|projects? built|"built"/);
     }
+  });
+
+  it('draws "Show 20 more" for a long list', async () => {
+    expect((await cases)['page: long']).toContain('Show 20 more');
+    expect((await cases)['screen: long']).toContain('Show 20 more');
   });
 });

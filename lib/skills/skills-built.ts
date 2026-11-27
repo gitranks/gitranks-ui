@@ -20,7 +20,10 @@ export type BuiltRowWords = {
   line: string;
   /** The marks, gold first. */
   marks: BuildCardMark[];
-  /** "built 26 Nov"; null for a day that cannot be read. */
+  /**
+   * "built 26 Nov", in UTC as every date of the page (it is cached, the same for everyone); null for a day that cannot
+   * be read. Build's own pages write the day in the person's zone, so near midnight the two can differ by a day.
+   */
   built: string | null;
   /** The project's page, which the title and the button lead to. */
   href: Route;

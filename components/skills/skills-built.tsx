@@ -80,8 +80,7 @@ export function SkillsBuiltRow({ row, now }: { row: SkillsBuilt; now: Date }) {
 
 /**
  * "Built": the projects the person built with GitRanks Build, the one built last first, under the line that says how
- * they were made. Between the fixes and the courses. Nothing without a built project, heading included, nor for a page
- * kept from before the API sent the rows (`built` missing).
+ * they were made. Between the fixes and the courses. Nothing without a built project, heading included.
  */
 export function SkillsBuiltSection({
   built,

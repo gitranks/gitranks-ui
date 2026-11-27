@@ -1,4 +1,4 @@
-import type { SkillsFigure, SkillsKind, SkillsNumbers } from './skills.types';
+import type { SkillsFigure, SkillsFigureKey, SkillsKind, SkillsNumbers } from './skills.types';
 import type { LearnFixMade } from '@/lib/workspace/pull-request-page.types';
 
 /*
@@ -27,8 +27,35 @@ export function hasSomething(figure: SkillsFigure): boolean {
   return figure.value !== null && figure.value > 0;
 }
 
+/** Every figure the site knows how to word. */
+const KNOWN_FIGURES = new Set<string>([
+  'FIXES_MERGED',
+  'PULL_REQUESTS_OPEN',
+  'LESSONS_LEARNED',
+  'PRACTISED',
+  'MASTERED',
+  'DAYS_ACTIVE',
+  'HELPED',
+  'AGENT',
+  'PROJECTS_BUILT',
+] satisfies SkillsFigureKey[]);
+
+/** The unknown figures already said, so each is logged once. */
+const saidUnknown = new Set<string>();
+
+/** Whether the site words a figure: one the API adds later is left out of the row (and logged once), never a failure. */
+function isKnown(figure: SkillsFigure): boolean {
+  if (KNOWN_FIGURES.has(figure.key)) return true;
+  if (!saidUnknown.has(figure.key)) {
+    saidUnknown.add(figure.key);
+    console.warn(`Skills figure not drawn: the site does not know "${figure.key}"`);
+  }
+  return false;
+}
+
 /** The figures worth showing, in their order: the row is shorter, it never holds a hole. */
-export const shownFigures = (figures: readonly SkillsFigure[]) => figures.filter(hasSomething);
+export const shownFigures = (figures: readonly SkillsFigure[]) =>
+  figures.filter((figure) => isKnown(figure) && hasSomething(figure));
 
 /** What a contributor's, a learner's, a person's of both and a builder's days count. */
 const DAYS_UNDER: Record<SkillsKind, string> = {

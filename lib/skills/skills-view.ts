@@ -36,7 +36,6 @@ export function ownerLayerOf(mine: SkillsMine | null, publicPage: boolean): Owne
  * view (`layer`). Until Build is open to everyone only its owner's view carries their built projects, and only to them.
  */
 export function builtShownOf(page: Pick<SkillsPage, 'built'>, layer: OwnerLayer): SkillsBuilt[] {
-  // A page kept from before the API sent the rows has none.
   const own = page.built ?? [];
   if (own.length || layer.kind !== 'strip') return own;
   return layer.mine.page?.built ?? own;

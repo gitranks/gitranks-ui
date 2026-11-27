@@ -21,7 +21,14 @@ import {
 } from './__fixtures__/skills';
 import type { SkillsFigure, SkillsKind, SkillsPage } from './skills.types';
 import { builtLanguagesOf, builtLineOf, builtRowOf } from './skills-built';
-import { countsBuildsOf, figureWordsOf, type LinePart, PRODUCT_NAMES, sinceLineOf } from './skills-figures';
+import {
+  countsBuildsOf,
+  figureWordsOf,
+  type LinePart,
+  PRODUCT_NAMES,
+  shownFigures,
+  sinceLineOf,
+} from './skills-figures';
 import { skillsMarkdownOf } from './skills-markdown';
 import { skillsCardOf, skillsCardSentenceOf } from './skills-share-card';
 import { builtShownOf, ownerLayerOf } from './skills-view';
@@ -204,5 +211,20 @@ describe('the share picture and the Markdown copy of a page with builds', () => 
       expect(text.toLowerCase()).not.toContain('claim');
       for (const row of builtRows) expect(text).not.toContain(row.line);
     }
+  });
+});
+
+describe('a figure the site does not know yet', () => {
+  it('is left out of the row and said once, so the next figure the API adds never fails a page', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const unknown = figure('SOMETHING_NEW' as SkillsFigure['key'], 4);
+    const row = [figure('DAYS_ACTIVE', 3), unknown];
+    expect(shownFigures(row)).toEqual([row[0]]);
+    expect(shownFigures(row)).toEqual([row[0]]);
+    expect(warn).toHaveBeenCalledTimes(1);
+    expect(skillsCardOf({ login: 'octocat', numbers: { ...builderNumbers, blockFigures: row } })?.figures).toHaveLength(
+      1,
+    );
+    warn.mockRestore();
   });
 });

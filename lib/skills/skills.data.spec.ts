@@ -220,6 +220,18 @@ describe("Build's fields", () => {
     );
   });
 
+  it('say the fallback once, not on every read', async () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    for (let read = 0; read < 2; read += 1) {
+      graphqlDirect
+        .mockRejectedValueOnce(unknown('built', 'SkillsPage'))
+        .mockResolvedValueOnce({ skillsPage: pageBefore });
+      await data.loadSkillsPage('octocat');
+    }
+    expect(warn.mock.calls.length).toBeLessThanOrEqual(1);
+    warn.mockRestore();
+  });
+
   it('do not hide another failure: it is not asked again', async () => {
     graphqlDirect.mockRejectedValueOnce(new Error('down'));
     await expect(data.loadSkillsPage('octocat')).resolves.toEqual({ value: null, failed: true });

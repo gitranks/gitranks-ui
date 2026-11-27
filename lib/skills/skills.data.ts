@@ -30,6 +30,9 @@ import type DocumentNode from '@/types/typed-document-node';
 /** An error the API gives for a field it does not know. */
 const UNKNOWN_FIELD = /Cannot query field|Unknown type/i;
 
+/** The fallback to today's documents is said once a server, not once a read. */
+let saidBefore = false;
+
 /**
  * Asks `document`, and `before` (the same without Build's fields) when the API does not know a field of the first:
  * an API not yet serving Build's fields still answers the page. Any other failure is thrown as it came.
@@ -43,13 +46,24 @@ async function askWithBuild<TData, TVariables extends Record<string, unknown>>(
   try {
     return await graphqlDirect(document, variables, params);
   } catch (error) {
-    if (!UNKNOWN_FIELD.test(error instanceof Error ? error.message : String(error))) throw error;
+    const message = error instanceof Error ? error.message : String(error);
+    if (!UNKNOWN_FIELD.test(message)) throw error;
+    if (!saidBefore) {
+      saidBefore = true;
+      console.warn(`Skills read without Build's fields: the API does not know them (${message.slice(0, 200)})`);
+    }
     return graphqlDirect(before, variables, params);
   }
 }
 
-/** A page with Build's fields as the page reads them: no Built row when the answer had none. */
-const withBuiltOf = (page: SkillsPage): SkillsPage => ({ ...page, built: page.built ?? [] });
+/**
+ * A page as the site keeps it: the Built rows when there are some, else no `built` key at all, so a page with nothing
+ * of Build is the same data as before Build (the public page hands it to the browser whole).
+ */
+function withBuiltOf(page: SkillsPage): SkillsPage {
+  const { built, ...rest } = page;
+  return built?.length ? page : rest;
+}
 
 /** The owner's view with Build's fields: no Built row and no build when the answer had none. */
 const mineWithBuildOf = (mine: SkillsMine): SkillsMine => ({

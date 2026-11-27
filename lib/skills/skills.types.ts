@@ -129,8 +129,11 @@ export type SkillsPage = {
   login: string;
   numbers: SkillsNumbers;
   fixes: SkillsFixes;
-  /** The projects built, the one built last first; empty while Build is not open to everyone. */
-  built: SkillsBuilt[];
+  /**
+   * The projects built, the one built last first. Left out when there is none (always, while Build is not open to
+   * everyone), so a public page's data is today's.
+   */
+  built?: SkillsBuilt[];
   courses: SkillsCourse[];
   indexable: boolean;
 };

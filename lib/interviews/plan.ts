@@ -1,3 +1,4 @@
+import { hereOf } from './round-line';
 import { dayWordsOf } from './sources';
 import type {
   InterviewAi,
@@ -202,11 +203,11 @@ export type RoundSize = 'facts' | 'row' | 'open' | 'closed';
 
 export function roundSizeOf(
   round: Pick<InterviewRound, 'number' | 'items'>,
-  mine: Pick<InterviewPlanMine, 'rounds' | 'here'> | null,
+  mine: Pick<InterviewPlanMine, 'rounds' | 'state' | 'here'> | null,
 ): RoundSize {
   if (!round.items.length) return 'facts';
   if (roundMineOf(mine, round.number)?.state === 'done') return 'row';
-  if (mine?.here === round.number) return 'open';
+  if (hereOf(mine) === round.number) return 'open';
   return 'closed';
 }
 
@@ -252,10 +253,13 @@ export function roundProgressWordsOf(
 }
 
 /** Whether the person went ahead of "You are here": a later round started or done. */
-export const jumpedAheadOf = (mine: Pick<InterviewPlanMine, 'rounds' | 'here'> | null): boolean =>
-  !!mine &&
-  mine.here !== null &&
-  mine.rounds.some((round) => round.number > (mine.here ?? 0) && (round.state === 'done' || round.state === 'started'));
+export function jumpedAheadOf(mine: Pick<InterviewPlanMine, 'rounds' | 'state' | 'here'> | null): boolean {
+  const here = hereOf(mine);
+  return (
+    here !== null &&
+    !!mine?.rounds.some((round) => round.number > here && (round.state === 'done' || round.state === 'started'))
+  );
+}
 
 /* The box "what to do now". */
 
@@ -350,7 +354,7 @@ export function boxMarksOf(plan: InterviewPlanPage, mine: InterviewPlanMine | nu
   return plan.rounds.map((round) => {
     const own = roundMineOf(mine, round.number);
     if (own?.state === 'done' || (mine?.state === 'finished' && round.items.length)) return 'done';
-    if (mine?.here === round.number) return 'here';
+    if (hereOf(mine) === round.number) return 'here';
     return 'ahead';
   });
 }

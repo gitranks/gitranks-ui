@@ -30,19 +30,22 @@ function startAsked(): { asked: boolean; clean: string } {
 /**
  * A plan's page as it lives in the browser. The page is the same for everyone; once it is up, a person with a session
  * reads their side of the plan, which fills the box and the rounds' marks in place, and a visitor asks for nothing. A
- * visitor's "Sign in with GitHub to start" comes back here with `?start=1`: the page then starts the plan (unless it
- * is in progress or finished already) and drops the query from the address. Starting and stopping change the box
- * and the rounds in place.
+ * visitor's "Sign in with GitHub to start" comes back here with `?start=1`: the page drops the query from the address
+ * and starts the plan (unless the read says it is in progress or finished already), the box held while it starts.
+ * Starting and stopping change the box and the rounds in place.
  */
 export function PlanLive({ plan, zone }: { plan: InterviewPlanPage; zone?: string }) {
   const [side, setSide] = useState<Side>({ kind: 'pending' });
   const [reading, setReading] = useState(true);
+  const [starting, setStarting] = useState(false);
   const [stoppedNow, setStoppedNow] = useState(false);
   const [now] = useState(() => new Date());
   const company = plan.company.slug;
   const slug = plan.slug;
 
   useEffect(() => {
+    const { asked, clean } = startAsked();
+    if (asked) window.history.replaceState(window.history.state, '', clean);
     if (!hasSessionHint(document.cookie)) {
       setSide({ kind: 'visitor' });
       setReading(false);
@@ -51,26 +54,31 @@ export function PlanLive({ plan, zone }: { plan: InterviewPlanPage; zone?: strin
     let live = true;
     setSide({ kind: 'pending' });
     setReading(true);
-    // One wait more than the read's own, for the start that may follow it.
+    // A backstop past the read's own time limit.
     const late = setTimeout(() => setReading(false), INTERVIEWS_READ_WAIT_MS * 2);
+    let held: ReturnType<typeof setTimeout> | undefined;
     void (async () => {
-      let mine = await readPlanMine(company, slug);
-      const { asked, clean } = startAsked();
-      if (asked) {
-        window.history.replaceState(window.history.state, '', clean);
-        if (mine && (mine.state === 'none' || mine.state === 'stopped')) {
-          const sent = await startPlan(company, slug);
-          if (sent.kind === 'ok') mine = sent.mine;
-        }
-      }
+      const mine = await readPlanMine(company, slug);
       if (!live) return;
       clearTimeout(late);
       setSide({ kind: 'session', mine });
       setReading(false);
+      // Back from signing in: start the plan unless the read says it is running or finished (a start on either would
+      // change nothing). A failed read starts it too. The box stays hidden while it starts, for one wait at most.
+      if (!asked || mine?.state === 'in_progress' || mine?.state === 'finished') return;
+      setStarting(true);
+      held = setTimeout(() => setStarting(false), INTERVIEWS_READ_WAIT_MS);
+      const sent = await startPlan(company, slug);
+      if (!live) return;
+      clearTimeout(held);
+      setStarting(false);
+      if (sent.kind === 'ok') setSide({ kind: 'session', mine: sent.mine });
+      if (sent.kind === 'signed_out') setSide({ kind: 'visitor' });
     })();
     return () => {
       live = false;
       clearTimeout(late);
+      clearTimeout(held);
     };
   }, [company, slug]);
 
@@ -118,6 +126,7 @@ export function PlanLive({ plan, zone }: { plan: InterviewPlanPage; zone?: strin
       box={box}
       mine={mine}
       reading={reading && side.kind === 'pending'}
+      starting={starting}
       now={now}
       zone={zone}
       onSignIn={onSignIn}

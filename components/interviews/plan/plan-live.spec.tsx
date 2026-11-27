@@ -128,6 +128,43 @@ describe("the plan's page in the browser", () => {
     expect(window.location.search).toBe('');
   });
 
+  it('starts the plan on the way back even when the read failed', async () => {
+    window.history.replaceState(null, '', `${PLAN_PATH}?start=1`);
+    answer({ start: seniorInProgress });
+    await draw();
+    expect(writes()).toEqual([
+      ['/api/me/interviews/start', { company: 'northwind', plan: 'senior-software-engineer' }],
+    ]);
+    expect(boxKind()).toBe('progress');
+  });
+
+  it('keeps the box and the rounds hidden while the plan starts on the way back', async () => {
+    window.history.replaceState(null, '', `${PLAN_PATH}?start=1`);
+    let started: (res: Response) => void = () => {};
+    fetchMock.mockImplementation(async (url: string) =>
+      String(url).endsWith('/start')
+        ? new Promise<Response>((resolve) => {
+            started = resolve;
+          })
+        : new Response(JSON.stringify({ mine: seniorNotStarted }), { status: 200 }),
+    );
+    await draw();
+    expect(host.querySelectorAll('[data-plan-held]')).toHaveLength(2);
+    await act(async () => started(new Response(JSON.stringify({ ok: true, data: seniorInProgress }), { status: 200 })));
+    await act(async () => {});
+    expect(host.querySelector('[data-plan-held]')).toBeNull();
+    expect(boxKind()).toBe('progress');
+  });
+
+  it('drops the query for a browser with no session, and asks nothing', async () => {
+    hint.present = false;
+    window.history.replaceState(null, '', `${PLAN_PATH}?start=1`);
+    await draw();
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(window.location.search).toBe('');
+    expect(boxKind()).toBe('visitor');
+  });
+
   it('starts the plan from the box, and starts a stopped one again', async () => {
     answer({ mine: seniorStopped, start: seniorInProgress });
     await draw();

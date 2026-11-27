@@ -43,6 +43,13 @@ function passedOf(
   return here !== null ? round.number < here : allDone;
 }
 
+/**
+ * The round "You are here" points to: only on a plan in progress. A plan not started, stopped or finished has none,
+ * whatever the read says.
+ */
+export const hereOf = (mine: Pick<InterviewPlanMine, 'state' | 'here'> | null): number | null =>
+  mine?.state === 'in_progress' ? mine.here : null;
+
 /** A round's point, from its state and the round "You are here" points to. */
 export function roundPointOf(number: number, state: InterviewRoundState | undefined, here: number | null): RoundPoint {
   if (state === 'done') return 'done';
@@ -57,11 +64,11 @@ export function roundPointOf(number: number, state: InterviewRoundState | undefi
  */
 export function roundLineOf(
   rounds: readonly RoundOnLine[],
-  mine: Pick<InterviewPlanMine, 'rounds' | 'here'> | null,
+  mine: Pick<InterviewPlanMine, 'rounds' | 'state' | 'here'> | null,
   { after }: { after: boolean },
 ): RoundLineMark[] {
   const states = statesOf(mine);
-  const here = mine?.here ?? null;
+  const here = hereOf(mine);
   const withItems = rounds.filter((round) => round.items.length);
   const allDone = !!mine && withItems.length > 0 && withItems.every((round) => states.get(round.number) === 'done');
   const passed = rounds.map((round) => passedOf(round, states.get(round.number), here, allDone));

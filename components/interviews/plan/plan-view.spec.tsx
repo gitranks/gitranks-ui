@@ -278,6 +278,23 @@ describe('a smaller company', () => {
       'Thin: this round rests on one report and one guide.',
     );
   });
+
+  it("keeps a thin round's notes, with the thin line after them", async () => {
+    const plan = {
+      ...tallgrassSrePlan,
+      rounds: tallgrassSrePlan.rounds.map((round) =>
+        round.number === 3 ? { ...round, notes: 'Sources do not agree on how long it takes.' } : round,
+      ),
+    };
+    await draw(plan, null);
+    const systems = row(3) ?? undefined;
+    await press(text(systems?.querySelector('button')), systems);
+    await press('Details and sources', systems);
+    expect([...(systems?.querySelectorAll('[data-round-note]') ?? [])].map((note) => text(note))).toEqual([
+      'Sources do not agree on how long it takes.',
+      'Thin: this round rests on one report and one guide.',
+    ]);
+  });
 });
 
 describe('the box, in each state', () => {

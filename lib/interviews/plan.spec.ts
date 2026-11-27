@@ -35,7 +35,10 @@ import {
   startedWordsOf,
   thinWordsOf,
 } from './plan';
-import type { InterviewPlanPage } from './types';
+import { roundLineOf } from './round-line';
+import type { InterviewPlanMine, InterviewPlanPage } from './types';
+
+const points = (marks: ReturnType<typeof roundLineOf>) => marks.map((mark) => mark.point);
 
 const senior = northwindSeniorPlan;
 const [recruiter, assessment, coding, design, values] = senior.rounds;
@@ -87,6 +90,30 @@ describe('the round sizes', () => {
       'row',
       'row',
     ]);
+  });
+});
+
+describe('"You are here", only on a plan in progress', () => {
+  // Reads that carry a round "You are here" for a plan not in progress: the page draws none for them.
+  const notStarted: InterviewPlanMine = { ...seniorNotStarted, here: 1 };
+  const stopped: InterviewPlanMine = { ...seniorStopped, here: 2 };
+  // A finished plan whose round 3 gained a lesson after it was finished.
+  const finished: InterviewPlanMine = { ...seniorFinished, here: 3, rounds: seniorJumped.rounds };
+
+  it('opens no round, rings no mark and sees no jump for a plan not started, stopped or finished', () => {
+    for (const mine of [notStarted, stopped, finished]) {
+      expect(senior.rounds.map((round) => roundSizeOf(round, mine))).not.toContain('open');
+      expect(boxMarksOf(senior, mine)).not.toContain('here');
+      expect(jumpedAheadOf(mine)).toBe(false);
+      expect(points(roundLineOf(senior.rounds, mine, { after: true }))).not.toContain('here');
+    }
+  });
+
+  it('keeps the box as it is for each of them', () => {
+    expect(planBoxOf(senior, notStarted, { session: true }).kind).toBe('start');
+    expect(planBoxOf(senior, stopped, { session: true }).kind).toBe('start');
+    expect(planBoxOf(senior, stopped, { session: true, stoppedNow: true }).kind).toBe('stopped');
+    expect(planBoxOf(senior, finished, { session: true }).kind).toBe('finished');
   });
 });
 

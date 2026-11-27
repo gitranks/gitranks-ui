@@ -67,6 +67,14 @@ describe('the line of rounds', () => {
     expect(joins(marks)).toEqual(['grey', 'grey', 'grey', 'grey']);
   });
 
+  it('has no round "You are here" outside a plan in progress, whatever the read says', () => {
+    const stopped = roundLineOf(senior, { ...seniorStopped, here: 2 }, { after: true });
+    expect(points(stopped)).toEqual(['done', 'plain', 'plain', 'plain', 'plain']);
+    expect(joins(stopped)).toEqual(['grey', 'grey', 'grey', 'grey']);
+    expect(points(roundLineOf(senior, { ...seniorNotStarted, here: 1 }, { after: true }))).not.toContain('here');
+    expect(points(roundLineOf(senior, { ...seniorFinished, here: 5 }, { after: true }))).toEqual(Array(5).fill('done'));
+  });
+
   it('is solid all the way for a finished plan', () => {
     const marks = roundLineOf(senior, seniorFinished, { after: true });
     expect(points(marks)).toEqual(['done', 'done', 'done', 'done', 'done']);

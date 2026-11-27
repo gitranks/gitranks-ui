@@ -40,7 +40,11 @@ export function RoundDetails({
     ['Where', round.format?.trim() || null],
     ['AI help', aiWordsOf(round.ai)],
   ].filter((fact): fact is [string, string] => !!fact[1]);
-  const note = round.thin ? thinWordsOf(round, sources) : round.notes?.trim() || null;
+  // The round's notes, and the thin line besides them on a thin round.
+  const notes = [
+    ['notes', round.notes?.trim() || null],
+    ['thin', round.thin ? thinWordsOf(round, sources) : null],
+  ].filter((note): note is [string, string] => !!note[1]);
   const Chevron = open ? ChevronDown : ChevronRight;
   return (
     <>
@@ -85,13 +89,13 @@ export function RoundDetails({
           </div>
           <SourceList sources={own} company={company.name} shown={ROUND_SOURCES_SHOWN} />
           <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
-            {note ? (
-              <span data-round-note={round.thin ? 'thin' : 'notes'} className="text-xs text-muted-foreground">
-                {note}
-              </span>
-            ) : (
-              <span />
-            )}
+            <span className="flex flex-col gap-1">
+              {notes.map(([kind, words]) => (
+                <span key={kind} data-round-note={kind} className="text-xs text-muted-foreground">
+                  {words}
+                </span>
+              ))}
+            </span>
             <WrongLink open={wrong} onToggle={() => setWrong((was) => !was)} />
           </div>
           {wrong && (

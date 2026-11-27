@@ -31,8 +31,17 @@ import { cn } from '@/lib/utils';
  *
  * The page comes drawn for a visitor. While a browser with a session reads the person's side (`reading`), the box and
  * the rounds stay hidden in their place, so a person never sees the visitor's box first; the stylesheet shows them
- * after the read's time limit, so a late read never leaves a hole.
+ * after the read's time limit, so a late read never leaves a hole. Back from signing in, they stay hidden while the
+ * plan starts (`starting`, which the page ends by its own time limit).
  */
+
+/** How the box and the rounds are held: hidden by the stylesheet until its reveal, or hidden while the plan starts. */
+const heldClassOf = (reading: boolean, starting: boolean) =>
+  starting
+    ? 'invisible'
+    : reading
+      ? '[html[data-has-session]_&]:invisible [html[data-has-session]_&]:animate-build-reveal'
+      : undefined;
 
 const SECTION_TITLE = 'm-0 text-xl font-bold tracking-tight';
 
@@ -194,31 +203,23 @@ export type PlanViewProps = Omit<PlanBoxProps, 'box' | 'marks'> & {
   mine: InterviewPlanMine | null;
   /** A browser with a session is reading the person's side: the box and the rounds stay hidden in their place. */
   reading?: boolean;
+  /** Back from signing in, the plan is starting: the box and the rounds stay hidden in their place. */
+  starting?: boolean;
 };
 
 /** A plan's page, for whoever reads it. */
-export function PlanView({ plan, box, mine, reading = false, ...actions }: PlanViewProps) {
+export function PlanView({ plan, box, mine, reading = false, starting = false, ...actions }: PlanViewProps) {
+  const held = reading || starting;
+  const heldClass = heldClassOf(reading, starting);
   return (
     <main data-plan-page={`${plan.company.slug}/${plan.slug}`} className={INTERVIEWS_COLUMN}>
       <div className="flex flex-col gap-5">
         <PlanHead plan={plan} />
-        <div
-          data-plan-held={reading ? '' : undefined}
-          aria-busy={reading || undefined}
-          className={cn(
-            reading && '[html[data-has-session]_&]:invisible [html[data-has-session]_&]:animate-build-reveal',
-          )}
-        >
+        <div data-plan-held={held ? '' : undefined} aria-busy={held || undefined} className={heldClass}>
           <PlanBox plan={plan} box={box} marks={boxMarksOf(plan, mine)} {...actions} />
         </div>
       </div>
-      <div
-        data-plan-held={reading ? '' : undefined}
-        className={cn(
-          'flex flex-col gap-10',
-          reading && '[html[data-has-session]_&]:invisible [html[data-has-session]_&]:animate-build-reveal',
-        )}
-      >
+      <div data-plan-held={held ? '' : undefined} className={cn('flex flex-col gap-10', heldClass)}>
         <PlanRounds plan={plan} mine={mine} />
       </div>
       <OtherPlans plan={plan} />

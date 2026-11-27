@@ -1,4 +1,5 @@
 import type {
+  SkillsBuilt,
   SkillsCourse,
   SkillsFigure,
   SkillsFix,
@@ -347,6 +348,7 @@ const page = (numbers: SkillsNumbers, rows: SkillsFix[], courses: SkillsCourse[]
   login: SKILLS_LOGIN,
   numbers,
   fixes: { rows, total: rows.length, next: null },
+  built: [],
   courses,
   indexable: true,
 });
@@ -376,6 +378,7 @@ const mine = (extra: Partial<SkillsMine> & Pick<SkillsMine, 'state'>): SkillsMin
   page: null,
   usesContribute: false,
   usesLearn: false,
+  usesBuild: false,
   tabNew: false,
   numbers: null,
   ...extra,
@@ -392,3 +395,141 @@ export const skillsMine = {
   publicFirstLesson: mine({ state: 'PUBLIC', page: firstLessonPage, usesLearn: true }),
   publicBoth: mine({ state: 'PUBLIC', page: bothPage, usesContribute: true, usesLearn: true }),
 } satisfies Record<string, SkillsMine>;
+
+/* ------------------------------------------------------------------------------------------------------------------ */
+/* Built projects (GitRanks Build): the design's rows and the numbers of each kind of person                           */
+/* ------------------------------------------------------------------------------------------------------------------ */
+
+const built = (project: string, extra: Partial<SkillsBuilt> = {}): SkillsBuilt => ({
+  project,
+  thing: 'a key-value database',
+  line: 'Set, get and delete, kept on disk through a restart.',
+  languages: ['typescript'],
+  steps: 14,
+  parts: 0,
+  partsOf: 0,
+  builtAt: '2026-11-03T15:00:00.000Z',
+  gold: false,
+  answeredAll: false,
+  ...extra,
+});
+
+/** Gold and every step answered, with two of five optional parts. */
+export const builtMcpServer = built('mcp-server', {
+  thing: 'an MCP server',
+  line: 'A small program that gives an AI agent new tools, written from nothing with no library.',
+  steps: 16,
+  parts: 2,
+  partsOf: 5,
+  builtAt: '2026-11-20T10:00:00.000Z',
+  gold: true,
+  answeredAll: true,
+});
+
+/** Every step answered, no gold. */
+export const builtWebServer = built('web-server', {
+  thing: 'a web server',
+  line: 'From a raw socket to pages in a browser.',
+  languages: ['python'],
+  steps: 15,
+  builtAt: '2026-11-12T10:00:00.000Z',
+  answeredAll: true,
+});
+
+/** Gold alone: the step questions skipped, the test passed again a week later. */
+export const builtWebServerGold: SkillsBuilt = { ...builtWebServer, gold: true, answeredAll: false };
+
+/** Built in both languages: one row. No mark. */
+export const builtKeyValue = built('key-value-database', { languages: ['typescript', 'python'] });
+
+/** The design's rows, the one built last first. */
+export const builtRows: SkillsBuilt[] = [builtMcpServer, builtWebServer, builtKeyValue];
+
+/** Someone who only builds. */
+export const builderNumbers: SkillsNumbers = {
+  kind: 'BUILDER',
+  figures: [
+    figure('PROJECTS_BUILT', 3, { second: 1 }),
+    figure('DAYS_ACTIVE', 21),
+    figure('AGENT', null, { name: 'Claude Code' }),
+  ],
+  blockFigures: [
+    figure('PROJECTS_BUILT', 3, { second: 1 }),
+    figure('DAYS_ACTIVE', 21),
+    figure('AGENT', null, { name: 'Claude Code' }),
+  ],
+  since: '2026-11-02T10:00:00.000Z',
+  languages: [],
+  fixes: 0,
+  courses: 0,
+  made: [],
+};
+
+/** Builds and learns: "projects built" takes the place of "practised". */
+export const buildsAndLearnsNumbers: SkillsNumbers = {
+  ...learnerNumbers,
+  figures: [
+    figure('PROJECTS_BUILT', 2, { second: 1 }),
+    figure('LESSONS_LEARNED', 103, { second: 3 }),
+    figure('MASTERED', 2),
+    figure('DAYS_ACTIVE', 78),
+  ],
+  blockFigures: [
+    figure('PROJECTS_BUILT', 2, { second: 1 }),
+    figure('LESSONS_LEARNED', 103, { second: 3 }),
+    figure('MASTERED', 2),
+  ],
+};
+
+/** Builds and fixes: fixes first, since they are real work. */
+export const buildsAndFixesNumbers: SkillsNumbers = {
+  ...contributorNumbers,
+  figures: [
+    figure('FIXES_MERGED', 3, { second: 3 }),
+    figure('PROJECTS_BUILT', 2, { second: 1 }),
+    figure('DAYS_ACTIVE', 78),
+    figure('HELPED', 4),
+  ],
+  blockFigures: [
+    figure('FIXES_MERGED', 3, { second: 3 }),
+    figure('PROJECTS_BUILT', 2, { second: 1 }),
+    figure('DAYS_ACTIVE', 78),
+  ],
+};
+
+/** All three: fixes merged, projects built, lessons learned, days active. */
+export const allThreeNumbers: SkillsNumbers = {
+  ...bothNumbers,
+  figures: [
+    figure('FIXES_MERGED', 3, { second: 3 }),
+    figure('PROJECTS_BUILT', 2, { second: 1 }),
+    figure('LESSONS_LEARNED', 103, { second: 3 }),
+    figure('DAYS_ACTIVE', 78),
+  ],
+  blockFigures: [
+    figure('FIXES_MERGED', 3, { second: 3 }),
+    figure('PROJECTS_BUILT', 2, { second: 1 }),
+    figure('LESSONS_LEARNED', 103, { second: 3 }),
+  ],
+};
+
+/** Someone who only builds, once Build is open to everyone: the numbers, then Built. */
+export const builderPage: SkillsPage = { ...page(builderNumbers, [], []), built: builtRows };
+
+/** All three, once Build is open to everyone. */
+export const allThreePage: SkillsPage = {
+  ...page(allThreeNumbers, bothFixes, [algorithmsCourse]),
+  built: builtRows.slice(0, 2),
+};
+
+/**
+ * The owner today, while Build is open to them alone: their public page as everyone reads it (no Built row, the numbers
+ * as without Build), and their own view, whose page carries their built projects.
+ */
+export const ownerBuildsMine: SkillsMine = mine({
+  state: 'PUBLIC',
+  page: { ...bothPage, built: [builtMcpServer] },
+  usesContribute: true,
+  usesLearn: true,
+  usesBuild: true,
+});

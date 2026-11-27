@@ -30,21 +30,34 @@ export function hasSomething(figure: SkillsFigure): boolean {
 /** The figures worth showing, in their order: the row is shorter, it never holds a hole. */
 export const shownFigures = (figures: readonly SkillsFigure[]) => figures.filter(hasSomething);
 
-/** What a contributor's, a learner's and a person's of both days count. */
+/** What a contributor's, a learner's, a person's of both and a builder's days count. */
 const DAYS_UNDER: Record<SkillsKind, string> = {
   CONTRIBUTOR: 'with work on a fix',
   LEARNER: 'with learning or work on a fix',
   BOTH: 'with learning or work on a fix',
+  BUILDER: 'with a step of a build',
 };
+
+/** What the days count of someone who builds and also fixes or learns. */
+const DAYS_UNDER_WITH_BUILDS = 'with a fix, a step or a lesson';
+
+/**
+ * Whether the numbers count built projects: a builder's, or a row with "projects built" in it. The API puts that figure
+ * in the row only once Build is open to everyone, so until then every row is worded as without Build.
+ */
+export const countsBuildsOf = (numbers: Pick<SkillsNumbers, 'kind' | 'figures'>): boolean =>
+  numbers.kind === 'BUILDER' ||
+  numbers.figures.some((figure) => figure.key === 'PROJECTS_BUILT' && hasSomething(figure));
 
 /** A figure as the box draws it: the big text, its label, and the small line under it. */
 export type FigureWords = { value: string; mono: boolean; label: string; under: string | null };
 
 /**
  * A figure's words. `fixes` is how many fixes the page lists: the agent of a person with one fix is "for this fix".
- * Singular for one: "1 fix merged", "in 1 project", "1 lesson learned", "1 day active".
+ * `builds`: the numbers count built projects (`countsBuildsOf`), so the days count a step of a build too. Singular for
+ * one: "1 fix merged", "in 1 project", "1 lesson learned", "1 day active", "1 project built".
  */
-export function figureWordsOf(figure: SkillsFigure, kind: SkillsKind, fixes: number): FigureWords {
+export function figureWordsOf(figure: SkillsFigure, kind: SkillsKind, fixes: number, builds = false): FigureWords {
   const value = figure.value ?? 0;
   const second = figure.second;
   const number = (label: string, under: string | null = null): FigureWords => ({
@@ -65,9 +78,17 @@ export function figureWordsOf(figure: SkillsFigure, kind: SkillsKind, fixes: num
     case 'MASTERED':
       return number('mastered', 'right once more, or a merged fix');
     case 'DAYS_ACTIVE':
-      return number(value === 1 ? 'day active' : 'days active', DAYS_UNDER[kind]);
+      return number(
+        value === 1 ? 'day active' : 'days active',
+        builds && kind !== 'BUILDER' ? DAYS_UNDER_WITH_BUILDS : DAYS_UNDER[kind],
+      );
     case 'HELPED':
       return number('said a fix helped', 'maintainers and readers');
+    case 'PROJECTS_BUILT':
+      return number(
+        value === 1 ? 'project built' : 'projects built',
+        second !== null && second > 0 ? `${countOf(second)} repeated after a week` : null,
+      );
     case 'AGENT': {
       const also = figure.also?.trim();
       return {
@@ -94,19 +115,43 @@ export function monthOf(at: string): string | null {
   return Number.isNaN(when.getTime()) ? null : MONTH.format(when);
 }
 
+/** A product a Skills page names: the two that make fixes, and GitRanks Build. */
+export type SkillsProduct = LearnFixMade | 'BUILD';
+
 /** A part of the line under the numbers: words, or a product's name, which is a link to its landing. */
-export type LinePart = string | { product: LearnFixMade };
+export type LinePart = string | { product: SkillsProduct };
 
 /**
  * The line under the numbers, by kind: since when, with which product, and what. A contributor whose fixes were all
- * made with Learn is "With GitRanks Learn". Three languages at most, as the API sends them.
+ * made with Learn is "With GitRanks Learn". Three languages at most, as the API sends them. Numbers that count built
+ * projects (`countsBuildsOf`) name only the products the person uses, GitRanks Build among them.
  */
 export function sinceLineOf(
-  numbers: Pick<SkillsNumbers, 'kind' | 'since' | 'languages' | 'fixes' | 'made'>,
+  numbers: Pick<SkillsNumbers, 'kind' | 'since' | 'languages' | 'fixes' | 'made' | 'figures'>,
 ): LinePart[] {
   const { made } = numbers;
   const month = monthOf(numbers.since);
   const since = month ? ` since ${month}` : '';
+  const product: LearnFixMade = made.length > 0 && made.every((one) => one === 'LEARN') ? 'LEARN' : 'CONTRIBUTE';
+  if (numbers.kind === 'BUILDER') {
+    return [
+      'Built with ',
+      { product: 'BUILD' },
+      `${since}: real, small projects made one step at a time with an AI agent, each with a test passed at the end.`,
+    ];
+  }
+  if (countsBuildsOf(numbers)) {
+    const fixes: LinePart[] = ['fixes in real open-source projects with ', { product }];
+    const built: LinePart[] = ['projects built with ', { product: 'BUILD' }];
+    const lessons: LinePart[] = ['lessons and practice with ', { product: 'LEARN' }];
+    const parts =
+      numbers.kind === 'LEARNER'
+        ? [built, lessons]
+        : numbers.kind === 'BOTH'
+          ? [fixes, built, lessons]
+          : [fixes, built];
+    return [`With GitRanks${since}: `, ...parts.flatMap((part, index) => (index ? [', ', ...part] : part)), '.'];
+  }
   if (numbers.kind === 'LEARNER') {
     return [
       'Learned on ',
@@ -123,7 +168,6 @@ export function sinceLineOf(
       '.',
     ];
   }
-  const product: LearnFixMade = made.length > 0 && made.every((one) => one === 'LEARN') ? 'LEARN' : 'CONTRIBUTE';
   const languages = numbers.languages.slice(0, 3);
   const inLanguages = languages.length ? ` in ${listWords(languages)}` : '';
   const what =
@@ -144,7 +188,8 @@ export function dayWordsOf(at: string | null, now: Date): string | null {
 }
 
 /** A product's name as the page writes it. */
-export const PRODUCT_NAMES: Record<LearnFixMade, string> = {
+export const PRODUCT_NAMES: Record<SkillsProduct, string> = {
   CONTRIBUTE: 'GitRanks Contribute',
   LEARN: 'GitRanks Learn',
+  BUILD: 'GitRanks Build',
 };

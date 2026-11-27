@@ -1,8 +1,18 @@
 import { skillsPath, skillsProfilePath } from './paths';
 import type { SkillsCourse, SkillsFix, SkillsPage } from './skills.types';
 import { COURSE_KIND_WORDS, courseCountsOf, finishedWordsOf, groupCountOf, notStartedLineOf } from './skills-courses';
-import { countOf, figureWordsOf, type LinePart, PRODUCT_NAMES, shownFigures, sinceLineOf } from './skills-figures';
+import {
+  countOf,
+  countsBuildsOf,
+  figureWordsOf,
+  type LinePart,
+  PRODUCT_NAMES,
+  type SkillsProduct,
+  shownFigures,
+  sinceLineOf,
+} from './skills-figures';
 import { fixesLineOf, fixLessonOf, fixLinksOf, fixStateWordsOf, MADE_WORDS, namesProduct } from './skills-fixes';
+import { BUILD_HOME_PATH } from '@/lib/build/paths';
 import { coursePath, LEARN_HOME_PATH, learnLessonPath } from '@/lib/learn/paths';
 import { absoluteUrl } from '@/lib/seo/site';
 import { WORKSPACE_PATHS } from '@/lib/workspace/paths';
@@ -21,7 +31,11 @@ const linkWords = (text: string) => oneLine(text).replace(/[[\]]/g, '');
 const link = (words: string, path: string) => `[${linkWords(words)}](${absoluteUrl(path)})`;
 
 /** Where each product's name leads: its landing. */
-const PRODUCT_PATHS: Record<LearnFixMade, string> = { CONTRIBUTE: WORKSPACE_PATHS.contribute, LEARN: LEARN_HOME_PATH };
+const PRODUCT_PATHS: Record<SkillsProduct, string> = {
+  CONTRIBUTE: WORKSPACE_PATHS.contribute,
+  LEARN: LEARN_HOME_PATH,
+  BUILD: BUILD_HOME_PATH,
+};
 
 /** A line of words and products, each product's name a link to its landing. */
 const lineOf = (parts: readonly LinePart[]) =>
@@ -65,8 +79,9 @@ function courseSectionOf(course: SkillsCourse, now: Date): string {
 /** The copy: the heading, the numbers with their line, the fixes, and the courses. */
 export function skillsMarkdownOf(page: SkillsPage, { now }: { now: Date }): string {
   const { numbers } = page;
+  const builds = countsBuildsOf(numbers);
   const figures = shownFigures(numbers.figures).map((figure) => {
-    const words = figureWordsOf(figure, numbers.kind, numbers.fixes);
+    const words = figureWordsOf(figure, numbers.kind, numbers.fixes, builds);
     return `- **${words.value}** ${words.label}${words.under ? `, ${words.under}` : ''}`;
   });
   const made: readonly LearnFixMade[] = numbers.made;

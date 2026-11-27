@@ -1,6 +1,7 @@
+import { print } from 'graphql';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { contributorPage, skillsMine } from './__fixtures__/skills';
+import { builtRows, contributorPage, ownerBuildsMine, skillsMine } from './__fixtures__/skills';
 
 const { graphqlDirect, cacheLife, cacheTag } = vi.hoisted(() => ({
   graphqlDirect: vi.fn(),
@@ -97,7 +98,7 @@ describe("the sitemap's logins", () => {
 describe("the owner's reads and writes", () => {
   it('read the view as the person, never kept: undefined when it fails', async () => {
     graphqlDirect.mockResolvedValueOnce({ skillsMine: skillsMine.publicLearner });
-    await expect(data.loadSkillsMine('octocat')).resolves.toBe(skillsMine.publicLearner);
+    await expect(data.loadSkillsMine('octocat')).resolves.toEqual(skillsMine.publicLearner);
     expect(graphqlDirect).toHaveBeenCalledWith(
       documents.SkillsMineDocument,
       {},
@@ -126,7 +127,7 @@ describe("the owner's reads and writes", () => {
 
   it('hide or show the page, throwing on a failure for the action to say so', async () => {
     graphqlDirect.mockResolvedValueOnce({ setSkillsHidden: skillsMine.hiddenLearner });
-    await expect(data.setSkillsHidden('octocat', true)).resolves.toBe(skillsMine.hiddenLearner);
+    await expect(data.setSkillsHidden('octocat', true)).resolves.toEqual(skillsMine.hiddenLearner);
     expect(graphqlDirect).toHaveBeenCalledWith(
       documents.SetSkillsHiddenDocument,
       { hidden: true },
@@ -134,5 +135,94 @@ describe("the owner's reads and writes", () => {
     );
     graphqlDirect.mockRejectedValueOnce(new Error('down'));
     await expect(data.setSkillsHidden('octocat', false)).rejects.toThrow('down');
+  });
+});
+
+describe("Build's fields", () => {
+  const unknown = (field: string, type: string) =>
+    new Error(
+      JSON.stringify([
+        {
+          message: `Cannot query field "${field}" on type "${type}".`,
+          extensions: { code: 'GRAPHQL_VALIDATION_FAILED' },
+        },
+      ]),
+    );
+  const { built: _built, ...pageBefore } = contributorPage;
+  const { usesBuild: _usesBuild, ...mineBefore } = skillsMine.publicLearner;
+  const { built: _learnerBuilt, ...learnerBefore } = skillsMine.publicLearner.page as NonNullable<
+    typeof skillsMine.publicLearner.page
+  >;
+
+  it("are asked: the Built rows on the page, and the owner's usesBuild", () => {
+    const page = print(documents.SkillsPageDocument);
+    for (const field of ['built', 'thing', 'partsOf', 'builtAt', 'gold', 'answeredAll']) expect(page).toContain(field);
+    expect(print(documents.SkillsMineDocument)).toContain('usesBuild');
+    expect(print(documents.SetSkillsHiddenDocument)).toContain('usesBuild');
+  });
+
+  it('are not in the documents for an API that does not know them, which ask everything else as before', () => {
+    for (const document of [
+      documents.SkillsPageBeforeBuildDocument,
+      documents.SkillsMineBeforeBuildDocument,
+      documents.SetSkillsHiddenBeforeBuildDocument,
+    ]) {
+      const query = print(document);
+      expect(query).not.toMatch(/\bbuilt\b|usesBuild/);
+      expect(query).toContain('indexable');
+    }
+  });
+
+  it('pass through: the owner reads their built projects', async () => {
+    graphqlDirect.mockResolvedValueOnce({ skillsMine: ownerBuildsMine });
+    const mine = await data.loadSkillsMine('octocat');
+    expect(mine?.page?.built).toEqual([builtRows[0]]);
+    expect(mine?.usesBuild).toBe(true);
+  });
+
+  it('are read as empty when the answer has none', async () => {
+    graphqlDirect.mockResolvedValueOnce({ skillsPage: pageBefore });
+    await expect(data.loadSkillsPage('octocat')).resolves.toEqual({ value: contributorPage, failed: false });
+    graphqlDirect.mockResolvedValueOnce({ skillsMine: { ...mineBefore, page: learnerBefore } });
+    await expect(data.loadSkillsMine('octocat')).resolves.toEqual(skillsMine.publicLearner);
+  });
+
+  it('are asked again without them when the API does not know them, and the page still answers', async () => {
+    graphqlDirect
+      .mockRejectedValueOnce(unknown('built', 'SkillsPage'))
+      .mockResolvedValueOnce({ skillsPage: pageBefore });
+    await expect(data.loadSkillsPage('octocat')).resolves.toEqual({ value: contributorPage, failed: false });
+    expect(graphqlDirect).toHaveBeenLastCalledWith(
+      documents.SkillsPageBeforeBuildDocument,
+      { login: 'octocat' },
+      { source: 'ssr' },
+    );
+    expect(cacheLife).toHaveBeenCalledExactlyOnceWith({ stale: 300, revalidate: 900, expire: 86_400 });
+
+    graphqlDirect
+      .mockRejectedValueOnce(unknown('usesBuild', 'SkillsMine'))
+      .mockResolvedValueOnce({ skillsMine: { ...mineBefore, page: learnerBefore } });
+    await expect(data.loadSkillsMine('octocat')).resolves.toEqual(skillsMine.publicLearner);
+    expect(graphqlDirect).toHaveBeenLastCalledWith(
+      documents.SkillsMineBeforeBuildDocument,
+      {},
+      { source: 'client', githubLogin: 'octocat' },
+    );
+
+    graphqlDirect
+      .mockRejectedValueOnce(unknown('usesBuild', 'SkillsMine'))
+      .mockResolvedValueOnce({ setSkillsHidden: { ...mineBefore, page: learnerBefore } });
+    await expect(data.setSkillsHidden('octocat', true)).resolves.toEqual(skillsMine.publicLearner);
+    expect(graphqlDirect).toHaveBeenLastCalledWith(
+      documents.SetSkillsHiddenBeforeBuildDocument,
+      { hidden: true },
+      { source: 'client', githubLogin: 'octocat' },
+    );
+  });
+
+  it('do not hide another failure: it is not asked again', async () => {
+    graphqlDirect.mockRejectedValueOnce(new Error('down'));
+    await expect(data.loadSkillsPage('octocat')).resolves.toEqual({ value: null, failed: true });
+    expect(graphqlDirect).toHaveBeenCalledTimes(1);
   });
 });

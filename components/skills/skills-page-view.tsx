@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 
+import { SkillsBuiltSection } from './skills-built';
 import { SkillsCoursesSection } from './skills-courses';
 import { SkillsFixesSection } from './skills-fixes';
 import { SkillsNumbersBox } from './skills-numbers-box';
@@ -9,7 +10,8 @@ import type { ProductBox } from '@/lib/skills/skills-owner';
 
 /**
  * A Skills page's content, top to bottom: the owner's strip when there is one, the numbers box with its line, "Fixes in
- * real projects", "Courses", and last the box about the other product that only the owner sees, so it moves nothing.
+ * real projects", "Built", "Courses", and last the box about the other product that only the owner sees, so it moves
+ * nothing.
  */
 export function SkillsPageView({
   page,
@@ -46,6 +48,7 @@ export function SkillsPageView({
         loading={loadingMore}
         leftLine={leftLine}
       />
+      <SkillsBuiltSection built={page.built} login={page.login} now={now} />
       <SkillsCoursesSection courses={page.courses} now={now} />
       {other ? <SkillsProductBox box={other} /> : null}
     </div>

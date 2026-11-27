@@ -249,6 +249,16 @@ const e = await import('@/lib/learn/learn-path');`;
     ]);
   });
 
+  it("lets Skills read Build's library for its Built rows, never Build's components", () => {
+    for (const file of ['lib/skills/skills-built.ts', 'components/skills/skills-built.tsx']) {
+      expect(crosses(file, 'lib/build/paths')).toBe(false);
+      expect(crosses(file, 'lib/build/project-card')).toBe(false);
+      expect(crosses(file, 'components/build/project-card')).toBe(true);
+    }
+    // Build reads nothing of Skills.
+    expect(crosses('lib/build/mine.ts', 'lib/skills/paths')).toBe(true);
+  });
+
   it("reads a server action module from its file: 'use server' among the directives it starts with", () => {
     expect(isServerActionSource("'use server';\n\nexport async function a() {}")).toBe(true);
     expect(isServerActionSource('﻿// Changes a set.\n/* two */\n"use server"\nexport async function a() {}')).toBe(true);

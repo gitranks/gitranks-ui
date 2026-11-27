@@ -19,8 +19,8 @@ export const CONTACT_EMAIL = 'hello@gitranks.com';
 
 /**
  * The day the Terms last changed without Contribute's section (YYYY-MM-DD). The Privacy policy and the Terms with that
- * section carry their own dates (`PRIVACY_UPDATED` in `app/privacy/page.tsx`, `CONTRIBUTE_TERMS_UPDATED` in
- * `app/terms/terms.tsx`).
+ * section carry their own dates (`PRIVACY_UPDATED` and, once its Interviews section shows,
+ * `INTERVIEWS_PRIVACY_UPDATED` in `app/privacy/privacy-updated.ts`; `CONTRIBUTE_TERMS_UPDATED` in `app/terms/terms.tsx`).
  */
 export const LAST_UPDATED = '2026-10-31';
 

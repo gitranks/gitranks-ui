@@ -1,7 +1,9 @@
 import type { Metadata } from 'next';
 
+import { privacyUpdated } from './privacy-updated';
 import { TermsRulesLink } from './terms-rules-link';
 import { A, B, LegalPage, type LegalSection, List, P } from '@/components/legal/legal-page';
+import { INTERVIEWS_OPEN_TO_EVERYONE } from '@/lib/interviews/interviews-parts';
 import { CONTACT_EMAIL, OPERATOR_ADDRESS, OPERATOR_NAME } from '@/lib/legal';
 import { pageMetadata } from '@/lib/seo/page-metadata';
 
@@ -322,6 +324,23 @@ const sections: LegalSection[] = [
     ),
   },
   {
+    // Shown only once Interviews is open to everyone (`INTERVIEWS_OPEN_TO_EVERYONE`): see `Privacy` below.
+    id: 'interviews',
+    title: 'GitRanks Interviews',
+    body: (
+      <P>
+        GitRanks Interviews sets out a company&apos;s interview rounds as an interview plan, with Learn lessons to
+        prepare for them. For <B>My interviews</B>, we keep the interview plans you started and when, when you finished
+        or stopped one and why you stopped it (if you said), and your latest &quot;This is wrong&quot; report on each
+        fact, with its note. When you learn a lesson inside a plan, your progress in Learn also keeps which plan you
+        learned it in. Your interview plans are not publicly visible. A report never shows your name. We keep all of
+        this until you delete it: <B>Delete all data</B> in Settings and removing your data from GitRanks (see{' '}
+        <A href="#removal">Removing your data</A>) delete it. Basis: contract (Article 6(1)(b)), to provide what you ask
+        for.
+      </P>
+    ),
+  },
+  {
     id: 'following',
     title: 'Following a package',
     body: (
@@ -592,9 +611,8 @@ const sections: LegalSection[] = [
   },
 ];
 
-/** The day the Privacy policy last changed (YYYY-MM-DD). */
-const PRIVACY_UPDATED = '2026-11-25';
-
 export default function Privacy() {
-  return <LegalPage title="Privacy policy" sections={sections} updated={PRIVACY_UPDATED} />;
+  // Interviews' section waits until Interviews is open to everyone; the page stays today's, byte for byte, till then.
+  const shown = INTERVIEWS_OPEN_TO_EVERYONE ? sections : sections.filter((section) => section.id !== 'interviews');
+  return <LegalPage title="Privacy policy" sections={shown} updated={privacyUpdated(INTERVIEWS_OPEN_TO_EVERYONE)} />;
 }

@@ -77,7 +77,7 @@ export type LearnCourseLessonMine = { slug: string; depth: LearnDepth; known: bo
 export const LearnCourseMineDocument = doc<{ learnCourseMine: LearnCourseMine | null }, { slug: string }>(
   `query LearnCourseMine($slug: String!) {
     learnCourseMine(slug: $slug) {
-      slug learned practised mastered known due lessons { slug depth known due } next { ${LINK} }
+      slug started learned practised mastered known due lessons { slug depth known due } next { ${LINK} }
       check { state left } finishedAt feedbackGood
     }
   }`,

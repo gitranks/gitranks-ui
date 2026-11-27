@@ -1,9 +1,9 @@
 import type { Metadata } from 'next';
 
-import { INTERVIEWS_OPEN_TO_EVERYONE } from './interviews-open';
 import { privacyUpdated } from './privacy-updated';
 import { TermsRulesLink } from './terms-rules-link';
 import { A, B, LegalPage, type LegalSection, List, P } from '@/components/legal/legal-page';
+import { INTERVIEWS_OPEN_TO_EVERYONE } from '@/lib/interviews/interviews-parts';
 import { CONTACT_EMAIL, OPERATOR_ADDRESS, OPERATOR_NAME } from '@/lib/legal';
 import { pageMetadata } from '@/lib/seo/page-metadata';
 

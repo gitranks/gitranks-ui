@@ -1,7 +1,3 @@
-import { existsSync } from 'node:fs';
-import { dirname, join } from 'node:path';
-import { fileURLToPath } from 'node:url';
-
 import { renderToStaticMarkup } from 'react-dom/server';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
@@ -12,7 +8,7 @@ vi.mock('@/lib/workspace/preview-gate', () => ({ contributeShown: vi.fn(async ()
 
 // Whether Interviews is open to everyone: flipped here to draw both cases.
 const open = vi.hoisted(() => ({ everyone: false }));
-vi.mock('./interviews-open', () => ({
+vi.mock('@/lib/interviews/interviews-parts', () => ({
   get INTERVIEWS_OPEN_TO_EVERYONE() {
     return open.everyone;
   },
@@ -20,9 +16,9 @@ vi.mock('./interviews-open', () => ({
 
 const { default: Privacy } = await import('./page');
 const { INTERVIEWS_PRIVACY_UPDATED, PRIVACY_UPDATED, privacyUpdated } = await import('./privacy-updated');
-const real = await vi.importActual<typeof import('./interviews-open')>('./interviews-open');
-
-const ROOT = join(dirname(fileURLToPath(import.meta.url)), '../..');
+const real = await vi.importActual<typeof import('@/lib/interviews/interviews-parts')>(
+  '@/lib/interviews/interviews-parts',
+);
 
 const text = (html: string) =>
   html
@@ -84,14 +80,5 @@ describe("the policy's last updated day", () => {
 
   it('has a day for the Interviews section whenever it shows', () => {
     if (real.INTERVIEWS_OPEN_TO_EVERYONE) expect(INTERVIEWS_PRIVACY_UPDATED).toMatch(/^\d{4}-\d{2}-\d{2}$/);
-  });
-});
-
-describe('the switch the section waits for', () => {
-  it("is Interviews' own constant once that is on main, not a second copy here", () => {
-    // When `lib/interviews/interviews-parts.ts` is in the tree, the page imports its constant and this file goes.
-    if (existsSync(join(ROOT, 'lib/interviews/interviews-parts.ts'))) {
-      expect(existsSync(join(ROOT, 'app/privacy/interviews-open.ts'))).toBe(false);
-    }
   });
 });

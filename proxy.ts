@@ -8,6 +8,8 @@ import { isBuildPath } from './lib/build/paths';
 import { prefersMarkdown } from './lib/contribute/accept-markdown';
 import { contributeLedgerOpen } from './lib/contribute/ledger-gate';
 import { prTimelineGateOf } from './lib/contribute/pr-timeline-gate';
+import { interviewsGateOf } from './lib/interviews/interviews-gate';
+import { isInterviewsPath } from './lib/interviews/paths';
 import { checkGateOf, courseGateOf, projectCourseGateOf } from './lib/learn/course-gate';
 import { fixByAttemptRouteGateOf, fixRouteGateOf, fixViewRouteGateOf } from './lib/learn/fix-gate';
 import { issuesShowFixedRedirectOf } from './lib/learn/issues';
@@ -78,6 +80,8 @@ const NOT_FOUND_PATH = '/_404';
 
 /** What a Build page tells search engines while Build is open only to some people. */
 export const BUILD_NOINDEX = 'noindex, nofollow';
+/** What an Interviews page tells search engines while Interviews is open only to some people. */
+export const INTERVIEWS_NOINDEX = 'noindex, nofollow';
 
 /** A gate's answer, kept by no shared cache. */
 function noStore(response: NextResponse): NextResponse {
@@ -185,6 +189,14 @@ export default async function proxy(request: NextRequest, event: NextFetchEvent)
   // person alone, the page is not indexed. Asked before Auth.js, like the 404s above.
   const buildGate = isBuildPath(request.nextUrl.pathname) ? await buildGateOf(request, Date.now()) : null;
   if (buildGate === 'closed') {
+    return noStore(NextResponse.rewrite(new URL(NOT_FOUND_PATH, request.url)));
+  }
+  // Interviews the same way, with its own list: every Interviews address (its logos and pictures included) is a real
+  // 404, never kept by a shared cache, to anyone it is not open to. It fails closed, and only its addresses ask.
+  const interviewsGate = isInterviewsPath(request.nextUrl.pathname)
+    ? await interviewsGateOf(request, Date.now())
+    : null;
+  if (interviewsGate === 'closed') {
     return noStore(NextResponse.rewrite(new URL(NOT_FOUND_PATH, request.url)));
   }
 
@@ -499,6 +511,9 @@ export default async function proxy(request: NextRequest, event: NextFetchEvent)
   const served = <T>(response: T): T => {
     if (twinLink && response instanceof Response) response.headers.set('Link', twinLink);
     if (buildGate === 'person' && response instanceof Response) response.headers.set('X-Robots-Tag', BUILD_NOINDEX);
+    if (interviewsGate === 'person' && response instanceof Response) {
+      response.headers.set('X-Robots-Tag', INTERVIEWS_NOINDEX);
+    }
     return landing ? withAgentsDocLink(response) : response;
   };
 

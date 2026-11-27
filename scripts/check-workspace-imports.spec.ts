@@ -152,6 +152,34 @@ describe('the workspace import rule', () => {
     expect(crosses('app/learn/components/learn-home.tsx', 'components/workspace/primitives')).toBe(false);
   });
 
+  it("names Interviews' folders and routes", () => {
+    expect(zoneOf('lib/interviews/paths.ts')).toBe('lib/interviews');
+    expect(zoneOf('components/interviews/bar/interviews-bar.tsx')).toBe('components/interviews');
+    expect(zoneOf('app/(interviews)/layout.tsx')).toBe('app/interviews');
+    expect(zoneOf('app/(interviews)/interviews/[company]/logo-64.png/route.ts')).toBe('app/interviews');
+    expect(zoneOf('app/(interviews-player)/interviews/[company]/[plan]/next/page.tsx')).toBe('app/interviews');
+    expect(zoneOf('app/api/me/interviews/bar/route.ts')).toBe('app/interviews');
+  });
+
+  it('keeps Interviews to itself, the shared folders and the site-wide modules', () => {
+    expect(crosses('components/interviews/company-logo.tsx', 'lib/interviews/company-logo')).toBe(false);
+    expect(crosses('app/(interviews)/layout.tsx', 'components/interviews/bar/interviews-bar')).toBe(false);
+    expect(crosses('app/(interviews)/layout.tsx', 'components/header/header')).toBe(false);
+    expect(crosses('components/interviews/sources/wrong-form.tsx', 'components/ui/button')).toBe(false);
+    expect(crosses('components/interviews/x.tsx', 'components/workspace/show-more')).toBe(false);
+    expect(crosses('lib/interviews/interviews-gate.ts', 'lib/workspace/session-token')).toBe(false);
+    // Nothing of Learn's, Contribute's or Build's, and nothing of Interviews' in theirs.
+    for (const other of ['lib/learn/course', 'components/learn/course/course-header', 'lib/build/paths']) {
+      expect(crosses('lib/interviews/paths.ts', other)).toBe(true);
+      expect(crosses('components/interviews/x.tsx', other)).toBe(true);
+      expect(crosses('app/(interviews)/interviews/page.tsx', other)).toBe(true);
+    }
+    expect(crosses('components/interviews/x.tsx', 'components/workspace/pull-request/review-view')).toBe(true);
+    expect(crosses('lib/interviews/paths.ts', 'components/interviews/company-logo')).toBe(true);
+    expect(crosses('lib/learn/course.ts', 'lib/interviews/paths')).toBe(true);
+    expect(crosses('components/build/project-card.tsx', 'components/interviews/company-logo')).toBe(true);
+  });
+
   it("lets Learn and the shared components import Build's doors through the gate alone, which holds no Build words", () => {
     expect(zoneOf('components/build/doors-gate.tsx')).toBe('components/build/doors-gate');
     expect(zoneOf('components/build/doors/course-build-line.tsx')).toBe('components/build');

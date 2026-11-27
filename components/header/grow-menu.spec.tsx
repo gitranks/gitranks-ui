@@ -29,13 +29,16 @@ const { MainMenu } = await import('./components/main-menu');
 const { BUILD_READ_WAIT_MS, resetBuildViewer } = await import('@/components/build/build-viewer');
 const { readBuildBar } = await import('@/components/build/build-bar-read');
 const { BUILD_OPEN_TO_EVERYONE } = await import('@/lib/build/built-parts');
+const { resetInterviewsViewer } = await import('@/components/interviews/interviews-viewer');
+const { INTERVIEWS_OPEN_TO_EVERYONE } = await import('@/lib/interviews/interviews-parts');
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
-/** The routes' answers: whether Build is open to the person, and their bar. */
-const answers = (open: boolean, hasBuild: boolean | null = false) =>
+/** The routes' answers: whether Build is open to the person, their bar, and whether Interviews is open to them. */
+const answers = (open: boolean, hasBuild: boolean | null = false, interviews = false) =>
   vi.fn(async (url: string) => {
     if (url === '/api/me/build/open') return Response.json({ open });
+    if (url === '/api/me/interviews/open') return Response.json({ open: interviews });
     if (url === '/api/me/build/bar')
       return Response.json({ bar: hasBuild === null ? null : { hasBuild, tests: null } });
     return new Response('not here', { status: 404 });
@@ -47,6 +50,7 @@ describe("the header's Grow menu", () => {
 
   beforeEach(() => {
     resetBuildViewer();
+    resetInterviewsViewer();
     hint.present = true;
     nav.pathname = '/';
     container = document.createElement('div');
@@ -94,7 +98,8 @@ describe("the header's Grow menu", () => {
       await render(<MainMenu />);
       const served = container.innerHTML;
       await act(async () => {});
-      expect(fetch).toHaveBeenCalledTimes(1);
+      // Whether Build is open, and whether Interviews is: both closed, so no bar is read.
+      expect(fetch.mock.calls.map(([url]) => url).sort()).toEqual(['/api/me/build/open', '/api/me/interviews/open']);
       expect(fetch).toHaveBeenCalledWith('/api/me/build/open', expect.objectContaining({ cache: 'no-store' }));
       expect(container.innerHTML).toBe(served);
       expect(container.innerHTML).not.toContain('Grow');
@@ -158,7 +163,8 @@ describe("the header's Grow menu", () => {
     await render(<MainMenu />);
     await act(async () => vi.advanceTimersByTimeAsync(BUILD_READ_WAIT_MS * 3));
     expect(rowItems()).toEqual(['Rankings', 'Badges', 'Contribute', 'LearnNew']);
-    expect(fetch).toHaveBeenCalledTimes(1);
+    // Asked once each: whether Build is open, and whether Interviews is.
+    expect(fetch).toHaveBeenCalledTimes(2);
   });
 
   it("takes the bar Build's own bar read a moment ago, so a Build page reads it once", async () => {
@@ -204,8 +210,8 @@ describe("the header's Grow menu", () => {
   it('asks once a page: the next header is drawn with Grow at once', async () => {
     const fetch = answers(true, false);
     vi.stubGlobal('fetch', fetch);
-    // Whether Build is open (not asked once it is open to everyone), then the bar.
-    const asks = BUILD_OPEN_TO_EVERYONE ? 1 : 2;
+    // Whether Build is open (not asked once it is open to everyone), then the bar, and whether Interviews is open.
+    const asks = (BUILD_OPEN_TO_EVERYONE ? 1 : 2) + (INTERVIEWS_OPEN_TO_EVERYONE ? 0 : 1);
     await render(<MainMenu />);
     expect(fetch).toHaveBeenCalledTimes(asks);
     await act(async () => root.unmount());
@@ -235,4 +241,53 @@ describe("the header's Grow menu", () => {
     await render(<MainMenu section="build" />);
     expect(entries(panel())[1].name).toBe('Build');
   });
+
+  it('puts Grow there for a person Interviews alone is open to, with Learn, Contribute and Interviews', async () => {
+    vi.stubGlobal('fetch', answers(false, null, true));
+    await render(<MainMenu />);
+    expect(rowItems()).toEqual(['Rankings', 'Badges', 'Grow']);
+    expect(entries(panel())).toEqual([
+      { name: 'Learn', href: '/learn', current: null },
+      { name: 'Contribute', href: '/contribute', current: null },
+      { name: 'Interviews', href: '/interviews', current: null },
+    ]);
+    expect(panel()?.textContent).toContain('Prepare for the interview at the company you want');
+    expect(container.innerHTML).not.toContain('/build');
+  });
+
+  it('lists Interviews last for a person both are open to', async () => {
+    vi.stubGlobal('fetch', answers(true, true, true));
+    await render(<MainMenu />);
+    expect(entries(panel()).map((entry) => entry.name)).toEqual(['Learn', 'Build', 'Contribute', 'Interviews']);
+  });
+
+  it.skipIf(INTERVIEWS_OPEN_TO_EVERYONE)("leaves Interviews out for a person on Build's list alone", async () => {
+    vi.stubGlobal('fetch', answers(true, false, false));
+    await render(<MainMenu />);
+    expect(entries(panel()).map((entry) => entry.name)).toEqual(['Learn', 'BuildNew', 'Contribute']);
+    expect(container.innerHTML).not.toContain('/interviews');
+  });
+
+  it("is served with Grow on Interviews' own pages, Interviews marked, and no Build for a person not on its list", () => {
+    const html = renderToStaticMarkup(<MainMenu section="interviews" />);
+    expect(html).toMatch(/<button [^>]*>Grow/);
+    expect(html).toMatch(/href="\/interviews"[^>]*aria-current="page"[^>]*><span[^>]*>Interviews<\/span>/);
+    if (!BUILD_OPEN_TO_EVERYONE) expect(html).not.toContain('/build');
+  });
+
+  it("marks Interviews by the path on Interviews' pages", async () => {
+    vi.stubGlobal('fetch', answers(false, null, true));
+    nav.pathname = '/interviews/northwind';
+    await render(<MainMenu />);
+    expect(entries(panel()).map((entry) => entry.current)).toEqual([null, null, 'page']);
+  });
+
+  it.skipIf(INTERVIEWS_OPEN_TO_EVERYONE)(
+    'is served with no link to Interviews while Interviews is not open to everyone',
+    () => {
+      for (const section of [undefined, 'rankings', 'badges', 'learn', 'contribute', 'build'] as const) {
+        expect(renderToStaticMarkup(<MainMenu section={section} />)).not.toContain('/interviews');
+      }
+    },
+  );
 });

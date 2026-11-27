@@ -14,6 +14,7 @@ import { ListItem } from './menu-list-item';
 import { mainMenuItemClass } from './menu-styles';
 import { PhoneMenu } from './phone-menu';
 import { type BuildViewer, useBuildViewer } from '@/components/build/build-viewer';
+import { type InterviewsViewer, useInterviewsViewer } from '@/components/interviews/interviews-viewer';
 import {
   NavigationMenuContent,
   NavigationMenuItem,
@@ -22,9 +23,9 @@ import {
 } from '@/components/ui/navigation-menu';
 import { packageRankingPath } from '@/utils/package-paths';
 
-export type MenuSection = 'rankings' | 'badges' | 'contribute' | 'learn' | 'build';
+export type MenuSection = 'rankings' | 'badges' | 'contribute' | 'learn' | 'build' | 'interviews';
 
-const GROW_SECTIONS: ReadonlySet<MenuSection> = new Set<MenuSection>(['learn', 'build', 'contribute']);
+const GROW_SECTIONS: ReadonlySet<MenuSection> = new Set<MenuSection>(['learn', 'build', 'contribute', 'interviews']);
 
 /** The section Grow marks: the one the page names, none for a page outside Grow, or (undefined) the path's. */
 const growSectionOf = (section: MenuSection | undefined): GrowSection | null | undefined => {
@@ -36,7 +37,8 @@ export function MainMenu({
   className,
   section,
   build: drawn,
-}: Readonly<{ className?: string; section?: MenuSection; build?: BuildViewer }>) {
+  interviews: drawnInterviews,
+}: Readonly<{ className?: string; section?: MenuSection; build?: BuildViewer; interviews?: InterviewsViewer }>) {
   // The shared viewport mounts menu content on the client only, so the menu runs without it.
   // `forceMount` puts the links in the server HTML for crawlers (hidden while closed). After
   // hydration it is dropped and the closed menu unmounts as usual: a mounted one keeps its
@@ -44,9 +46,12 @@ export function MainMenu({
   const [hydrated, setHydrated] = useState(false);
   // Whether Build is open to this viewer, read in the browser since the page is shared: closed, the menu is today's.
   // Build's own pages reach only people Build is open to (the proxy answers 404 to anyone else), so they serve Grow
-  // from the start; whether the person has a build ("New") is still read in the browser.
+  // from the start; whether the person has a build ("New") is still read in the browser. Interviews' pages likewise.
   const read = useBuildViewer();
   const build = drawn ?? { open: read.open || section === 'build', hasBuild: read.hasBuild };
+  // The same for Interviews, read apart: Grow is drawn when either is open to the viewer, and lists only what is.
+  const interviewsRead = useInterviewsViewer();
+  const interviews = drawnInterviews ?? { open: interviewsRead.open || section === 'interviews' };
 
   useEffect(() => {
     setHydrated(true);
@@ -95,9 +100,13 @@ export function MainMenu({
           </Link>
         </NavigationMenuLink>
       </NavigationMenuItem>
-      {build.open ? (
+      {build.open || interviews.open ? (
         // Grow, in the place of Contribute and Learn.
-        <GrowMenuItem section={growSectionOf(section)} isNew={build.hasBuild !== true} />
+        <GrowMenuItem
+          section={growSectionOf(section)}
+          isNew={build.hasBuild !== true}
+          open={{ build: build.open, interviews: interviews.open }}
+        />
       ) : (
         <>
           {/* With no section named, the two mark themselves by the path: the workspace's layout reads no path. */}

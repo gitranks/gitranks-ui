@@ -45,6 +45,8 @@ export const interviewCoursePath = (course: string) => `/learn/courses/${encodeU
 export const INTERVIEWS_OPEN_MINE_PATH = '/api/me/interviews/open';
 /** Interviews' bar. */
 export const INTERVIEWS_BAR_MINE_PATH = '/api/me/interviews/bar';
+/** My interviews: the plans in progress and the finished ones. */
+export const INTERVIEWS_MINE_MINE_PATH = '/api/me/interviews/mine';
 /** Sends one "This is wrong" (`POST`, `{ company, plan, fact, note }`). */
 export const INTERVIEWS_REPORT_MINE_PATH = '/api/me/interviews/report';
 

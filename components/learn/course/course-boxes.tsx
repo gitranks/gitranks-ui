@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { type ReactNode, useState } from 'react';
 
 import { CourseMark } from './course-marks';
+import { GoFurtherRows } from '@/components/build/doors/go-further-rows';
 import { Button } from '@/components/ui/button';
 import { Kbd } from '@/components/workspace/kbd';
 import {
@@ -349,12 +350,15 @@ function LastBox({
   box,
   lit,
   hints,
+  slug,
   issuesHref,
   onSignIn,
 }: {
   box: CourseLastBox;
   lit: boolean;
   hints: boolean;
+  /** The course's slug: "Go further" names Build's project of the course, for a person Build is open to. */
+  slug: string;
   /** Where "Fix a real issue" leads. */
   issuesHref: Route;
   onSignIn: () => void;
@@ -392,36 +396,45 @@ function LastBox({
       return (
         <Box lit={lit}>
           <Eyebrow>Go further</Eyebrow>
-          <ul className="m-0 flex list-none flex-col gap-3 p-0 text-sm">
-            {box.next ? (
-              <li className="flex flex-col">
-                <Link href={courseHrefOf(box.next)} className="font-semibold text-link hover:underline">
-                  Next course: {box.next.name}
-                </Link>
-                <span className="text-xs text-muted-foreground">{lessonsWords(box.next.lessons)}</span>
-              </li>
-            ) : null}
-            {box.issues ? (
-              <li className="flex flex-col" data-further-issues="">
-                <Link href={issuesHref} className="font-semibold text-link hover:underline">
-                  Fix a real issue
-                </Link>
-                <span className="text-xs text-muted-foreground">{courseIssuesBoxWordsOf(box.issues).title}.</span>
-              </li>
-            ) : null}
-            <li className="flex flex-col">
-              <a
-                href="https://roleford.com"
-                rel="noreferrer"
-                target="_blank"
-                className="inline-flex items-center gap-1 font-semibold text-link hover:underline"
-              >
-                Looking for a job?
-                <ExternalLink className="size-[13px]" aria-hidden="true" />
-              </a>
-              <span className="text-xs text-muted-foreground">Roleford finds roles that match what you know.</span>
-            </li>
-          </ul>
+          <GoFurtherRows
+            course={slug}
+            parts={{
+              next: box.next ? { name: box.next.name, href: courseHrefOf(box.next), lessons: box.next.lessons } : null,
+              issues: box.issues ? { open: box.issues, href: issuesHref } : null,
+            }}
+            today={
+              <ul className="m-0 flex list-none flex-col gap-3 p-0 text-sm">
+                {box.next ? (
+                  <li className="flex flex-col">
+                    <Link href={courseHrefOf(box.next)} className="font-semibold text-link hover:underline">
+                      Next course: {box.next.name}
+                    </Link>
+                    <span className="text-xs text-muted-foreground">{lessonsWords(box.next.lessons)}</span>
+                  </li>
+                ) : null}
+                {box.issues ? (
+                  <li className="flex flex-col" data-further-issues="">
+                    <Link href={issuesHref} className="font-semibold text-link hover:underline">
+                      Fix a real issue
+                    </Link>
+                    <span className="text-xs text-muted-foreground">{courseIssuesBoxWordsOf(box.issues).title}.</span>
+                  </li>
+                ) : null}
+                <li className="flex flex-col">
+                  <a
+                    href="https://roleford.com"
+                    rel="noreferrer"
+                    target="_blank"
+                    className="inline-flex items-center gap-1 font-semibold text-link hover:underline"
+                  >
+                    Looking for a job?
+                    <ExternalLink className="size-[13px]" aria-hidden="true" />
+                  </a>
+                  <span className="text-xs text-muted-foreground">Roleford finds roles that match what you know.</span>
+                </li>
+              </ul>
+            }
+          />
         </Box>
       );
   }
@@ -456,6 +469,7 @@ export function CourseBoxesRow({
         box={boxes.last}
         lit={boxes.highlight === 'last'}
         hints={hints}
+        slug={slug}
         issuesHref={issuesHref ?? learnCourseRealWorldPath(slug)}
         onSignIn={calls.onSignIn}
       />

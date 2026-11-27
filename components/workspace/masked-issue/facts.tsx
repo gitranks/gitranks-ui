@@ -121,6 +121,8 @@ export function IssueHints({ hints, extra = [] }: { hints: readonly IssueHint[];
 
 /** The lesson an issue uses or teaches, when there is one. */
 export type MaskedIssueLesson = {
+  /** The lesson's slug: Build's line at the end of the page reads the projects of its course. */
+  slug?: string;
   title: string;
   href?: Route | null;
   /** The person learned it already ("Uses"), or it is new for them ("Teaches"). */

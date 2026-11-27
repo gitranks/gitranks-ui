@@ -2,6 +2,7 @@ import { ChevronDown } from 'lucide-react';
 import Link from 'next/link';
 
 import { ProjectAuthor, ProjectFacts } from './project-course-parts';
+import { CourseBuildLine } from '@/components/build/doors/course-build-line';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -173,6 +174,8 @@ export function CourseHeader({
           courseCountLineOf(course)
         )}
       </p>
+      {/* Build's door, under the numbers: only for a person Build is open to, once their browser knows it. */}
+      <CourseBuildLine course={course.slug} />
     </header>
   );
 }

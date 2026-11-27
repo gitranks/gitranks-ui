@@ -73,6 +73,7 @@ const BUILD_ROUTES = ['app/(build)/', 'app/(build-player)/', 'app/(onboarding)/b
 /** The folder rule's name for a path, or null for a site-wide module every folder may import. */
 export function zoneOf(path) {
   if (path.startsWith('lib/build/')) return 'lib/build';
+  if (path.startsWith('components/build/doors/')) return 'components/build/doors';
   if (path.startsWith('components/build/')) return 'components/build';
   if (BUILD_ROUTES.some((dir) => path.startsWith(dir))) return 'app/build';
   if (path.startsWith('lib/skills/')) return 'lib/skills';
@@ -112,10 +113,12 @@ const MAY_IMPORT = {
   'lib/contribute': ['lib/contribute', 'lib/workspace'],
   'lib/learn': ['lib/learn', 'lib/workspace'],
   'lib/build': ['lib/build', 'lib/workspace'],
-  'components/build': ['components/build', 'lib/build', 'components/workspace', 'lib/workspace'],
-  'app/build': ['app/build', 'lib/build', 'components/build', 'components/workspace', 'lib/workspace'],
+  'components/build': ['components/build', 'components/build/doors', 'lib/build', 'components/workspace', 'lib/workspace'],
+  // The doors into Build on Learn's and Contribute's pages: the one part of Build those pages may draw.
+  'components/build/doors': ['components/build/doors', 'components/build', 'lib/build', 'components/workspace', 'lib/workspace'],
+  'app/build': ['app/build', 'lib/build', 'components/build', 'components/build/doors', 'components/workspace', 'lib/workspace'],
   'lib/auth': ['lib/auth', 'lib/workspace'],
-  'components/workspace': ['components/workspace', 'components/workspace/pull-request', 'lib/workspace'],
+  'components/workspace': ['components/workspace', 'components/workspace/pull-request', 'components/build/doors', 'lib/workspace'],
   'components/workspace/pull-request': [
     'components/workspace',
     'components/workspace/pull-request',
@@ -131,6 +134,7 @@ const MAY_IMPORT = {
   ],
   'components/learn': [
     'components/learn',
+    'components/build/doors',
     'components/workspace',
     'components/workspace/pull-request',
     'lib/learn',

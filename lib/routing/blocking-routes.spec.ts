@@ -40,6 +40,11 @@ const ROUTES = [
     params: ['owner', 'repo', 'number'],
   },
   {
+    segment: 'build/[project]/[step]',
+    module: () => import('@/app/(build-player)/build/[project]/[step]/page'),
+    params: ['project', 'step'],
+  },
+  {
     segment: 'repos/language/[language]/[page]',
     module: () => import('@/app/repos/language/[language]/[page]/layout'),
     params: ['language', 'page'],

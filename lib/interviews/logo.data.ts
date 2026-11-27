@@ -3,7 +3,7 @@ import 'server-only';
 import { cacheLife, cacheTag } from 'next/cache';
 
 import { InterviewLogoDocument } from './interviews.documents';
-import { type InterviewLogoSize, interviewCompanyTag, isInterviewCompanySlug } from './paths';
+import { type InterviewLogoFileSize, interviewCompanyTag, isInterviewCompanySlug } from './paths';
 import { graphqlDirect } from '@/lib/graphql/graphql-direct';
 
 /** A base64 PNG as the API sends it: letters, digits, `+`, `/` and up to two `=` at the end. */
@@ -14,7 +14,7 @@ const BASE64 = /^[A-Za-z0-9+/]+={0,2}$/;
  * is not one, and on a failed read. The same for everyone: kept for hours under the company's tag, so a logo taken
  * down leaves with the company's next expiry; a null only for minutes. Never throws (`home.data.ts` says why).
  */
-export async function loadInterviewLogo(company: string, size: InterviewLogoSize): Promise<string | null> {
+export async function loadInterviewLogo(company: string, size: InterviewLogoFileSize): Promise<string | null> {
   'use cache';
   cacheTag(interviewCompanyTag(company));
   if (!isInterviewCompanySlug(company)) {

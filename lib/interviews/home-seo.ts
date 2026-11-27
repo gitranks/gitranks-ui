@@ -1,7 +1,10 @@
 import type { Metadata } from 'next';
 
 import { INTERVIEWS_OPEN_TO_EVERYONE } from './interviews-parts';
-import { INTERVIEWS_HOME_PATH } from './paths';
+import { INTERVIEWS_HOME_MARKDOWN_PATH, INTERVIEWS_HOME_PATH } from './paths';
+import { INTERVIEWS_CARD_HEADLINE, interviewsCardUrlOf } from './share-card';
+import { withInterviewsPreview } from './share-seo';
+import type { InterviewsHome } from './types';
 import { pageMetadata } from '@/lib/seo/page-metadata';
 
 /*
@@ -24,3 +27,14 @@ export const INTERVIEWS_HOME_METADATA: Metadata = {
   }),
   ...(INTERVIEWS_OPEN_TO_EVERYONE ? {} : { robots: { index: false, follow: false } }),
 };
+
+/**
+ * Interviews home's metadata with its share picture (the top five's logos, from the home read) and its Markdown copy.
+ * `noindex` until Interviews is open to everyone, as above.
+ */
+export const interviewsHomeMetadataOf = (home: Pick<InterviewsHome, 'top'>): Metadata =>
+  withInterviewsPreview(INTERVIEWS_HOME_METADATA, {
+    picture: interviewsCardUrlOf(home),
+    alt: INTERVIEWS_CARD_HEADLINE,
+    markdown: INTERVIEWS_HOME_MARKDOWN_PATH,
+  });

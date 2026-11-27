@@ -1,5 +1,7 @@
 import { SITE_DESCRIPTION, SITE_NAME, SITE_URL } from './site';
 import { agentSetupLineOf } from '@/lib/contribute/mcp-docs';
+import { interviewsLlmsLinesOf } from '@/lib/interviews/llms-lines';
+import type { InterviewsHome } from '@/lib/interviews/types';
 import { isProjectCourse, type LearnCourseCard, PROJECT_SECTION } from '@/lib/learn/course';
 import { LEARN_MAINTAINERS_PATH, LEARN_PATH } from '@/lib/learn/learn-path';
 import {
@@ -44,15 +46,18 @@ function registryPackageLines(registry: RegistryId, url: (path: string) => strin
  * patterns of per-item pages (never one person's or one project's own URL). `contribute`: Contribute is launched, so its pages for agents, the setup a person finishes before their agent takes an issue, and its pull request timelines are listed. The packages section
  * lists the package rankings, the address patterns of a package's page and a repository's Used by tab, and the Unsung
  * heroes archive. Learn's pages are listed with its courses (`learnCourses`, each with its Markdown copy), and its page
- * for maintainers with Contribute.
+ * for maintainers with Contribute. Interviews' pages are listed only when `interviews` is given, which the route does
+ * once Interviews is open to everyone: its home, How it works, and each company and plan with its Markdown copy.
  */
 export function llmsTxtOf({
   contribute,
   learnCourses = [],
+  interviews = null,
 }: {
   contribute: boolean;
   learnCourses?: readonly (Pick<LearnCourseCard, 'slug' | 'name' | 'covers'> &
     Partial<Pick<LearnCourseCard, 'kind' | 'project'>>)[];
+  interviews?: Pick<InterviewsHome, 'companies'> | null;
 }): string {
   const url = (path: string) => `${SITE_URL}${path}`;
   const courseLine = (course: (typeof learnCourses)[number]) =>
@@ -99,6 +104,7 @@ export function llmsTxtOf({
     ...(contribute ? [`- [For maintainers](${url(LEARN_MAINTAINERS_PATH)}): what a Learn pull request is`] : []),
     '',
   );
+  if (interviews) lines.push(...interviewsLlmsLinesOf(interviews, url));
   lines.push(
     '## Rankings and badges',
     '',

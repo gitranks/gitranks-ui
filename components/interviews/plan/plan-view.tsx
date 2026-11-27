@@ -8,7 +8,12 @@ import { RoundLine, RoundLineAfterRow, RoundLineRow } from './round-line';
 import { INTERVIEWS_COLUMN } from '@/components/interviews/column';
 import { CompanyLogo } from '@/components/interviews/company-logo';
 import { BasisChip } from '@/components/interviews/sources/basis-chip';
-import { INTERVIEWS_ABOUT_PATH, interviewCompanyPath, interviewPlanPath } from '@/lib/interviews/paths';
+import {
+  INTERVIEWS_ABOUT_PATH,
+  interviewCompanyPath,
+  interviewPlanMarkdownPath,
+  interviewPlanPath,
+} from '@/lib/interviews/paths';
 import {
   boxMarksOf,
   countWordsOf,
@@ -172,7 +177,7 @@ function OtherPlans({ plan }: { plan: InterviewPlanPage }) {
   );
 }
 
-/** The foot line: how many sources, the day of the last check, and how we research. */
+/** The foot line: how many sources, the day of the last check, how we research, and the page's Markdown copy. */
 function PlanFoot({ plan }: { plan: InterviewPlanPage }) {
   const checked = dayWordsOf(plan.checkedAt);
   const parts = [
@@ -193,6 +198,10 @@ function PlanFoot({ plan }: { plan: InterviewPlanPage }) {
       <Link href={INTERVIEWS_ABOUT_PATH} className="hover:underline">
         How we research
       </Link>
+      <span aria-hidden="true"> · </span>
+      <a href={interviewPlanMarkdownPath(plan.company.slug, plan.slug)} className="hover:underline">
+        Markdown version
+      </a>
     </p>
   );
 }

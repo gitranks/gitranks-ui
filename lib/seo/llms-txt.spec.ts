@@ -134,3 +134,34 @@ describe('llms.txt', () => {
     expect(text).toContain('/sitemaps/contribute-prs/sitemap.xml');
   });
 });
+
+describe("llms.txt's Interviews section", () => {
+  it('is not there while Interviews is not open to everyone (no home given)', () => {
+    for (const contribute of [true, false]) {
+      const text = llmsTxtOf({ contribute });
+      expect(text).not.toContain('## Interviews');
+      expect(text).not.toContain('/interviews');
+    }
+    expect(llmsTxtOf({ contribute: false, interviews: null })).toBe(llmsTxtOf({ contribute: false }));
+  });
+
+  it("lists, once open, the home with its copy, How it works, the copies' addresses, and each company and plan", async () => {
+    const { interviewsHome } = await import('@/lib/interviews/__fixtures__/companies');
+    const text = llmsTxtOf({ contribute: false, interviews: interviewsHome });
+    const start = text.indexOf('## Interviews');
+    const section = text.slice(start, text.indexOf('\n## ', start));
+    expect(text.indexOf('## Learn')).toBeLessThan(text.indexOf('## Interviews'));
+    expect(section).toContain('(https://example.test/interviews)');
+    expect(section).toContain('([Markdown](https://example.test/interviews.md))');
+    expect(section).toContain('- [How it works](https://example.test/interviews/about): where the facts come from\n');
+    expect(section).toContain("- A company's page in Markdown: https://example.test/interviews/<company>.md\n");
+    expect(section).toContain("- A plan's page in Markdown: https://example.test/interviews/<company>/<plan>.md\n");
+    expect(section).toContain('- [Northwind](https://example.test/interviews/northwind.md): 7 plans\n');
+    expect(section).toContain('- [Tallgrass](https://example.test/interviews/tallgrass.md): 1 plan\n');
+    expect(section).toContain(
+      '  - [Site reliability engineer](https://example.test/interviews/tallgrass/site-reliability-engineer.md)\n',
+    );
+    expect(section).not.toMatch(new RegExp(`[${String.fromCharCode(0x2014, 0x2013)}]`));
+    expect(section).not.toContain('/interviews/mine');
+  });
+});

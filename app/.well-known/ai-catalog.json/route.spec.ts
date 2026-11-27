@@ -1,10 +1,14 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 import { GET, OPTIONS } from './route';
+import { loadInterviewsHome } from '@/lib/interviews/home.data';
+
+// While Interviews is not open to everyone the catalog reads nothing of it.
+vi.mock('@/lib/interviews/home.data', () => ({ loadInterviewsHome: vi.fn() }));
 
 describe('/.well-known/ai-catalog.json', () => {
   it('serves the catalog that points at the Contribute MCP server card, byte for byte', async () => {
-    const response = GET();
+    const response = await GET();
     expect(response.status).toBe(200);
     expect(response.headers.get('Content-Type')).toBe('application/ai-catalog+json; charset=utf-8');
     expect(response.headers.get('Cache-Control')).toBe('public, max-age=3600');
@@ -14,6 +18,7 @@ describe('/.well-known/ai-catalog.json', () => {
     expect(await response.text()).toBe(
       '{"specVersion":"1.0","entries":[{"identifier":"urn:air:gitranks.com:mcp:contribute","type":"application/mcp-server-card+json","url":"https://mcp.gitranks.com/mcp/server-card"}]}',
     );
+    expect(loadInterviewsHome).not.toHaveBeenCalled();
   });
 
   it('answers a CORS preflight with no body', () => {

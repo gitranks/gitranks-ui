@@ -3,6 +3,9 @@ import type { Metadata } from 'next';
 import { ABOUT_LEAD } from './about';
 import { INTERVIEWS_OPEN_TO_EVERYONE } from './interviews-parts';
 import { INTERVIEWS_ABOUT_PATH, INTERVIEWS_MINE_PATH } from './paths';
+import { INTERVIEWS_CARD_HEADLINE, interviewsCardUrlOf } from './share-card';
+import { withInterviewsPreview } from './share-seo';
+import type { InterviewsHome } from './types';
 import { pageMetadata } from '@/lib/seo/page-metadata';
 
 /*
@@ -31,3 +34,10 @@ export const INTERVIEWS_ABOUT_METADATA: Metadata = {
   }),
   ...(INTERVIEWS_OPEN_TO_EVERYONE ? {} : { robots: NOINDEX }),
 };
+
+/** How it works with Interviews' share picture, as the home's: it has no picture of its own. */
+export const interviewsAboutMetadataOf = (home: Pick<InterviewsHome, 'top'>): Metadata =>
+  withInterviewsPreview(INTERVIEWS_ABOUT_METADATA, {
+    picture: interviewsCardUrlOf(home),
+    alt: INTERVIEWS_CARD_HEADLINE,
+  });

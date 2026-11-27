@@ -24,6 +24,8 @@ export const BLOCKING_ROUTES = [
   '/repo/[owner]/[name]/contributors',
   // A pull request's public timeline.
   '/contribute/pr/[owner]/[repo]/[number]',
+  // A Build project: a missing one answers 404.
+  '/build/[project]',
   // A step of a Build project: a missing or removed step answers 404.
   '/build/[project]/[step]',
 ];

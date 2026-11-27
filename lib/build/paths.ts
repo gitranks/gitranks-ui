@@ -22,6 +22,8 @@ export const BUILD_ABOUT_PATH = '/build/about' as Route;
 export const FROM_BUILD = 'build';
 /** Settings, reached from Build. */
 export const BUILD_SETTINGS_PATH = `/my/settings?from=${FROM_BUILD}` as Route;
+/** A person's Skills page, where their built projects show too. */
+export const buildSkillsPath = (login: string) => `/profile/${encodeURIComponent(login)}/skills` as Route;
 
 /** The test's two kinds in an address: the end test at `/test`, the gold test at `/test/gold`. */
 const TEST_SEGMENT: Record<BuildTestKind, string> = { end: 'test', gold: 'test/gold' };
@@ -43,6 +45,8 @@ export const buildStartPath = (project: string | null = null) =>
  */
 export const buildTestPath = (project: string, kind: BuildTestKind = 'end', language: BuildLanguage | null = null) =>
   `${buildProjectPath(project)}/${TEST_SEGMENT[kind]}${languageQuery(language)}` as Route;
+/** A Learn course that helps with a project, as a project's page links it. */
+export const buildCoursePath = (course: string) => `/learn/courses/${encodeURIComponent(course)}` as Route;
 
 /*
  * Where the browser reads the signed-in person's side of each page, and sends their writes. Every route answers for

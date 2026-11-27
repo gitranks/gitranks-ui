@@ -1,3 +1,4 @@
+import type { CourseCompanyUse } from './courses-interviews';
 import type { LearnCourseGroup, LearnDepth, LearnGroupLesson, LearnLessonLevel, LearnLessonLink } from './lesson-page';
 import { SETUP_LANGUAGES } from './setup';
 import { languageNameOf } from '@/lib/workspace/learn-question';
@@ -9,9 +10,13 @@ import { languageNameOf } from '@/lib/workspace/learn-question';
 
 /**
  * A topic course works in any language; a language course is about one (or JavaScript and TypeScript together); a
- * project course is about one repository or one organisation, written by GitRanks from the project's docs and code.
+ * project course is about one repository or one organisation, written by GitRanks from the project's docs and code; a
+ * company course is about one company's interviews.
  */
-export type LearnCourseKind = 'TOPIC' | 'LANGUAGE' | 'REPOSITORY' | 'ORG';
+export type LearnCourseKind = 'TOPIC' | 'LANGUAGE' | 'REPOSITORY' | 'ORG' | 'COMPANY';
+
+/** The section a course belongs to beside the kinds: Interviews (a company course, Interview skills). */
+export type LearnCourseSection = 'INTERVIEWS';
 
 /**
  * The project a project course is about: its name on the page, its repository (`owner/name`) or its organisation, both
@@ -47,6 +52,8 @@ export type LearnCourseCard = {
   numbers: LearnCourseNumbers;
   /** The project of a project course; null or absent for a topic or a language course. */
   project?: LearnCourseProject | null;
+  /** Its section beside the kinds; null or absent for a course of the kinds' sections. */
+  section?: LearnCourseSection | null;
 };
 
 /** A course whole: its groups of lessons in order, and the course to take after it. */
@@ -142,6 +149,7 @@ export const COURSE_KIND_LABELS: Record<LearnCourseKind, string> = {
   LANGUAGE: 'Language course',
   REPOSITORY: 'Repository course',
   ORG: 'Org course',
+  COMPANY: 'Company course',
 };
 
 /** The words a search finds a kind of course by. */
@@ -150,6 +158,7 @@ const KIND_WORDS: Record<LearnCourseKind, string> = {
   LANGUAGE: 'language',
   REPOSITORY: 'repository project',
   ORG: 'org organisation project',
+  COMPANY: 'company course',
 };
 
 /**
@@ -707,8 +716,8 @@ export function courseSearchOf(groups: readonly LearnCourseGroup[], query: strin
 /* All courses                                                                                                        */
 /* ------------------------------------------------------------------------------------------------------------------ */
 
-/** The sections of all courses: topics, languages, and the courses about one project. */
-export type CourseSectionKind = 'TOPIC' | 'LANGUAGE' | 'PROJECT';
+/** The sections of all courses: topics, languages, the courses about one project, and Interviews. */
+export type CourseSectionKind = 'TOPIC' | 'LANGUAGE' | 'PROJECT' | 'INTERVIEWS';
 
 /** A section of all courses: one kind, or the project courses of both kinds together. */
 export type CourseSection = { kind: CourseSectionKind; title: string; sub: string; courses: LearnCourseCard[] };
@@ -717,11 +726,22 @@ export type CourseSection = { kind: CourseSectionKind; title: string; sub: strin
 export const isProjectCourse = (course: Partial<Pick<LearnCourseCard, 'kind'>>): boolean =>
   course.kind === 'REPOSITORY' || course.kind === 'ORG';
 
+/** Whether a course is in the section Interviews: a company course, and a course that says so (Interview skills). */
+export const isInterviewsCourse = (course: Partial<Pick<LearnCourseCard, 'kind' | 'section'>>): boolean =>
+  course.section === 'INTERVIEWS' || course.kind === 'COMPANY';
+
+/** The title and the line of the section Interviews. */
+export const INTERVIEWS_SECTION = { title: 'Interviews', sub: 'What each company asks, round by round.' };
+
 /** The title and the line of the section of project courses. */
 export const PROJECT_SECTION = {
   title: 'Projects, from the inside',
   sub: 'For people who want to contribute to them.',
 };
+
+/** A project's main language by its name ("Go"); null with none. */
+const projectLanguageNameOf = (project: Pick<LearnCourseProject, 'language'>) =>
+  project.language ? languageNameOf(project.language) : null;
 
 /** "all seven languages" for Learn's seven; the names for any other list ("Python and JavaScript", "Shell"). */
 const examplesInWords = (languages: readonly string[], all = 'all ') =>
@@ -760,10 +780,11 @@ export function topicLanguagesLineOf(topics: readonly Pick<LearnCourseCard, 'lan
 }
 
 /**
- * The sections of all courses, topics first, then languages, then projects, each in the API's order; a section with no
- * course is left out.
+ * The sections of all courses, topics first, then languages, then projects, then Interviews, each in the given order;
+ * a section with no course is left out. A course of the section Interviews is there alone, never under its kind.
  */
-export function courseSectionsOf(courses: readonly LearnCourseCard[]): CourseSection[] {
+export function courseSectionsOf(all: readonly LearnCourseCard[]): CourseSection[] {
+  const courses = all.filter((course) => !isInterviewsCourse(course));
   const topics = courses.filter((course) => course.kind === 'TOPIC');
   const languages = courses.filter((course) => course.kind === 'LANGUAGE');
   const sections: CourseSection[] = [];
@@ -787,15 +808,27 @@ export function courseSectionsOf(courses: readonly LearnCourseCard[]): CourseSec
   }
   const projects = courses.filter(isProjectCourse);
   if (projects.length) sections.push({ kind: 'PROJECT', ...PROJECT_SECTION, courses: projects });
+  const interviews = all.filter(isInterviewsCourse);
+  if (interviews.length) sections.push({ kind: 'INTERVIEWS', ...INTERVIEWS_SECTION, courses: interviews });
   return sections;
 }
 
-/** A course the search found, its name marked when the name matched. */
-export type FoundCourse = { course: LearnCourseCard; name: MarkedText };
+/**
+ * A course the search found, its name marked when the name matched; `uses`, when a company's whole name was typed:
+ * how that company's interview plans use it.
+ */
+export type FoundCourse = { course: LearnCourseCard; name: MarkedText; uses?: CourseCompanyUse[] };
+
+/** Whether the typed words are the whole of a name: case and accents do not matter. */
+export function isWholeNameOf(name: string, query: string): boolean {
+  const q = foldedOf(searchQueryOf(query)).folded.toLowerCase();
+  return q !== '' && foldedOf(searchQueryOf(name)).folded.toLowerCase() === q;
+}
 
 /**
  * What the search of all courses found: courses by name, kind or project (a project course's `owner/name` or its
- * organisation's login), then lessons by name, live ones only.
+ * organisation's login, or its language's whole name), and the courses a company's plans use, then lessons by name,
+ * live ones only.
  */
 export type CoursesSearch = {
   query: string;
@@ -803,21 +836,29 @@ export type CoursesSearch = {
   lessons: LearnLessonListItem[];
 };
 
-/** The search of all courses. Nothing typed: every course, and no lessons. */
+/**
+ * The search of all courses. Nothing typed: every course, and no lessons. `uses`: the courses the typed company's plans
+ * use, by slug (`courseCompanyUsesOf`), each found with its line.
+ */
 export function coursesSearchOf(
   courses: readonly LearnCourseCard[],
   lessons: readonly LearnLessonListItem[],
   raw: string,
+  uses?: ReadonlyMap<string, CourseCompanyUse[]>,
 ): CoursesSearch {
   const query = searchQueryOf(raw);
   const sections = courseSectionsOf(courses).flatMap((section) => {
     const found = section.courses.flatMap((course): FoundCourse[] => {
       if (!query) return [{ course, name: { text: course.name } }];
       const name = markedTextOf(course.name, query);
+      const used = uses?.get(course.slug);
+      if (used?.length) return [{ course, name, uses: used }];
       if ('mark' in name) return [{ course, name }];
       const project = course.project;
       const byProject = [project?.repo, project?.org].some((text) => !!text && wordStartMatchOf(text, query));
-      return byProject || wordStartMatchOf(KIND_WORDS[course.kind], query) ? [{ course, name }] : [];
+      const language = project ? projectLanguageNameOf(project) : null;
+      const byLanguage = !!language && isWholeNameOf(language, query);
+      return byProject || byLanguage || wordStartMatchOf(KIND_WORDS[course.kind], query) ? [{ course, name }] : [];
     });
     return found.length ? [{ ...section, found }] : [];
   });

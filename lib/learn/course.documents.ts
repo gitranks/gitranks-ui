@@ -22,8 +22,8 @@ const doc = <TData, TVariables extends Record<string, unknown> = Record<string, 
 const LINK = 'slug title';
 /** A project course's project, as its card and its page name it. */
 const PROJECT = 'project { name repo org language githubUrl onGitranks covers checkedAt }';
-/** A course's card: a project course's carries its project. */
-export const COURSE_CARD_FIELDS = `slug name kind covers languages lessons numbers { learners goodShare } ${PROJECT}`;
+/** A course's card: a project course's carries its project; a course of the section Interviews, its section. */
+export const COURSE_CARD_FIELDS = `slug name kind covers languages lessons numbers { learners goodShare } ${PROJECT} section`;
 const CARD = COURSE_CARD_FIELDS;
 /** A course whole, as everyone reads it: its groups name their repository and the group about contributing. */
 const COURSE = `${CARD} numbers { issuesFixed } about

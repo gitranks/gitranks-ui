@@ -74,6 +74,23 @@ describe("a course's page", () => {
     });
   });
 
+  it('is never indexed for a course of the section Interviews while Interviews is not open to everyone', async () => {
+    for (const course of [
+      { ...algorithmsCourse, slug: 'interview-skills', section: 'INTERVIEWS' as const },
+      {
+        ...algorithmsCourse,
+        slug: 'interviewing-at-northwind',
+        kind: 'COMPANY' as const,
+        section: 'INTERVIEWS' as const,
+      },
+    ]) {
+      loadLearnCourse.mockResolvedValueOnce(course);
+      const metadata = await generateMetadata(props(course.slug));
+      expect(metadata.robots, course.slug).toEqual({ index: false, follow: false });
+      expect(metadata.title).toBe(course.name);
+    }
+  });
+
   it("says a missing course's page does not exist, naming nothing, with the way to all courses", () => {
     const html = renderToStaticMarkup(<CourseNotFound />);
     expect(html).toContain('data-course-gone="missing"');

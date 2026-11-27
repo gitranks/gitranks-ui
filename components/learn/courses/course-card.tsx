@@ -133,16 +133,23 @@ export function ProjectLanguage({ course }: { course: Pick<LearnCourseCard, 'pro
   ) : null;
 }
 
-/** A course on the list: one link to its page. A project course names its main language beside its name. */
+/**
+ * A course on the list: one link to its page. A project course names its main language beside its name; a company's
+ * course has its logo before it (`logo`). `uses`: under what it covers, why a typed company's plans use it.
+ */
 export function CourseCard({
   course,
   name,
   mine,
+  logo,
+  uses,
 }: {
   course: LearnCourseCard;
   /** The name as the search marked it. */
   name?: MarkedText;
   mine: LearnCourseMineCard | null;
+  logo?: ReactNode;
+  uses?: ReactNode;
 }) {
   const bar = mine ? courseBarOf(mine, course.lessons) : [];
   return (
@@ -153,12 +160,14 @@ export function CourseCard({
         data-course-card={course.slug}
       >
         <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
+          {logo}
           <h3 className="m-0 text-base font-semibold">
             <Marked text={name ?? { text: course.name }} tone="courses" />
           </h3>
           <ProjectLanguage course={course} />
         </span>
         <span className="text-sm text-muted-foreground">{course.covers}</span>
+        {uses}
         <CourseStats course={course} mine={mine} className="mt-0.5" />
         {mine && bar.length ? (
           <span

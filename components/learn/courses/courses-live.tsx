@@ -3,7 +3,9 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { CoursesView } from './courses-view';
+import { useCoursesInterviews } from '@/components/interviews/learn-gate/courses-gate';
 import type { LearnCourseCard, LearnCourseMineCard, LearnLessonListItem } from '@/lib/learn/course';
+import type { CoursesInterviews } from '@/lib/learn/courses-interviews';
 import type { LearnDepth } from '@/lib/learn/lesson-page';
 import { LEARN_COURSES_MINE_PATH, learnCourseDepthsPath } from '@/lib/learn/paths';
 import { hasSessionHint } from '@/lib/session-hint';
@@ -35,17 +37,21 @@ export async function readCourseDepths(courses: readonly string[]): Promise<Reco
  * All courses as the page lives in the browser. The list is the same for everyone and comes drawn for a visitor;
  * once it is up, a person with a session reads their courses (their figure and bar on each card) in one read, and a
  * visitor asks for nothing. The depth of each lesson in their courses is read only once a search shows a lesson of
- * one of them, and once: until then its square keeps its place.
+ * one of them, and once: until then its square keeps its place. Interviews' part comes drawn (`interviews`) once
+ * Interviews is open to everyone; until then a person it is open to reads it, and anyone else asks nothing more.
  */
 export function CoursesLive({
   courses,
   lessons,
   query,
+  interviews: served = null,
 }: {
   courses: readonly LearnCourseCard[];
   lessons: readonly LearnLessonListItem[];
   query: string;
+  interviews?: CoursesInterviews | null;
 }) {
+  const interviews = useCoursesInterviews(served);
   const [mine, setMine] = useState<LearnCourseMineCard[] | null>(null);
   const [depths, setDepths] = useState<Record<string, LearnDepth> | null>(null);
   const asked = useRef(false);
@@ -75,6 +81,7 @@ export function CoursesLive({
       depths={depths}
       onSquaresShown={onSquaresShown}
       query={query}
+      interviews={interviews}
     />
   );
 }

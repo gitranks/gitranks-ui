@@ -195,6 +195,25 @@ describe('the workspace import rule', () => {
     expect(crosses('components/build/doors-gate.tsx', 'lib/build/paths')).toBe(true);
   });
 
+  it("lets Learn's components import Interviews' parts on Learn's pages, and nothing else of Interviews", () => {
+    expect(zoneOf('components/interviews/learn-gate/courses-gate.tsx')).toBe('components/interviews/learn-gate');
+    expect(crosses('components/learn/courses/courses-view.tsx', 'components/interviews/learn-gate/courses-gate')).toBe(
+      false,
+    );
+    expect(crosses('components/learn/courses/courses-view.tsx', 'components/interviews/company-logo')).toBe(true);
+    expect(crosses('components/learn/courses/courses-view.tsx', 'lib/interviews/paths')).toBe(true);
+    expect(crosses('lib/learn/course.ts', 'components/interviews/learn-gate/courses-interviews')).toBe(true);
+    // The parts read Interviews and Learn's types; the rest of Interviews never reads Learn.
+    expect(crosses('components/interviews/learn-gate/courses-gate.tsx', 'components/interviews/company-logo')).toBe(
+      false,
+    );
+    expect(crosses('components/interviews/learn-gate/courses-gate.tsx', 'lib/learn/courses-interviews')).toBe(false);
+    expect(crosses('components/interviews/learn-gate/courses-gate.tsx', 'components/learn/courses/course-card')).toBe(
+      true,
+    );
+    expect(crosses('components/interviews/company-logo.tsx', 'lib/learn/course')).toBe(true);
+  });
+
   it('lets only the pull request folder of the shared components read Learn', () => {
     expect(crosses('components/workspace/pull-request/review-view.tsx', 'lib/learn/learn.types')).toBe(false);
     expect(crosses('components/workspace/agent/agent-connect.tsx', 'lib/learn/learn.types')).toBe(true);

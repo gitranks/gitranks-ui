@@ -290,6 +290,7 @@ const SHORT_SECTION_TITLES: Record<CourseSectionKind, string> = {
   TOPIC: 'Topics',
   LANGUAGE: 'Languages',
   PROJECT: 'Projects',
+  INTERVIEWS: 'Interviews',
 };
 
 /** One course of a column: its name (a project course's with its main language), then its lessons and numbers. */

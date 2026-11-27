@@ -5,6 +5,11 @@ import Link from 'next/link';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { CourseCard } from './course-card';
+import {
+  CourseCompanyLogo,
+  CourseCompanyUses,
+  CoursesCompaniesRow,
+} from '@/components/interviews/learn-gate/courses-gate';
 import { CountLine } from '@/components/learn/course/course-header';
 import { Marked } from '@/components/learn/course/course-lessons';
 import { CourseMark, SQUARE_CLASS } from '@/components/learn/course/course-marks';
@@ -24,6 +29,13 @@ import {
   markedTextOf,
   SQUARE_WORDS,
 } from '@/lib/learn/course';
+import {
+  type CoursesInterviews,
+  courseCompanyUsesOf,
+  coursesWithInterviewsOf,
+  interviewsSectionShownOf,
+  sectionCompaniesOf,
+} from '@/lib/learn/courses-interviews';
 import type { LearnDepth } from '@/lib/learn/lesson-page';
 import { coursesSearchPath, LEARN_COURSES_MARKDOWN_PATH, learnLessonPath } from '@/lib/learn/paths';
 import { cn } from '@/lib/utils';
@@ -42,13 +54,20 @@ export type CoursesViewProps = {
   onSquaresShown?: () => void;
   /** What the address's `?q=` carried. */
   query?: string;
+  /** What the list shows of Interviews: none until Interviews is open to the viewer, and none with no company. */
+  interviews?: CoursesInterviews | null;
   /** For the catalogue: the lessons opened in place, and the key hints. */
   drawn?: { allLessons?: boolean };
   hints?: boolean;
 };
 
 /** Each section's heading id, a link's target. */
-const SECTION_IDS: Record<CourseSectionKind, string> = { TOPIC: 'topics', LANGUAGE: 'languages', PROJECT: 'projects' };
+const SECTION_IDS: Record<CourseSectionKind, string> = {
+  TOPIC: 'topics',
+  LANGUAGE: 'languages',
+  PROJECT: 'projects',
+  INTERVIEWS: 'interviews',
+};
 
 const SQUARE_OF_DEPTH: Record<LearnDepth, CourseSquareKind> = {
   NONE: 'none',
@@ -128,6 +147,7 @@ export function CoursesView({
   depths,
   onSquaresShown,
   query: start = '',
+  interviews = null,
   drawn = {},
   hints: hintsGiven,
 }: CoursesViewProps) {
@@ -135,11 +155,13 @@ export function CoursesView({
   const hints = hintsGiven ?? live;
   const [query, setQuery] = useState(start);
   const [allLessons, setAllLessons] = useState(drawn.allLessons ?? false);
+  const [allInterviews, setAllInterviews] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const type = useCallback((typed: string) => {
     setQuery(typed);
     setAllLessons(false);
+    setAllInterviews(false);
     // The address keeps what was typed, without a step in the history for each letter.
     if (typeof window !== 'undefined') {
       window.history.replaceState(window.history.state, '', coursesSearchPath(typed.trim()));
@@ -153,7 +175,13 @@ export function CoursesView({
     inputRef.current?.focus();
   };
 
-  const search = useMemo(() => coursesSearchOf(courses, lessons, query), [courses, lessons, query]);
+  // Interviews' courses join the list, and a company's whole name finds the courses its plans use.
+  const listed = useMemo(() => coursesWithInterviewsOf(courses, interviews), [courses, interviews]);
+  const search = useMemo(
+    () => coursesSearchOf(listed, lessons, query, courseCompanyUsesOf(interviews, query, listed)),
+    [listed, lessons, query, interviews],
+  );
+  const companyOf = useMemo(() => sectionCompaniesOf(interviews), [interviews]);
   // What was found shows beside the field only for a search: the full list counts nothing.
   const found = search.query ? foundWordsOf(search) : null;
   const mineOf = useMemo(() => new Map((mine ?? []).map((card) => [card.course.slug, card])), [mine]);
@@ -182,6 +210,15 @@ export function CoursesView({
     opened.current = false;
     lessonsRef.current?.querySelectorAll('a')[LESSONS_SHOWN_FIRST]?.focus();
   }, [allLessons]);
+  // "Show all N courses" leaves too; the keyboard goes on from the first course it showed.
+  const interviewsRef = useRef<HTMLUListElement>(null);
+  const interviewsFrom = useRef<number | null>(null);
+  useEffect(() => {
+    const from = interviewsFrom.current;
+    if (!allInterviews || from === null) return;
+    interviewsFrom.current = null;
+    interviewsRef.current?.querySelectorAll('a')[from]?.focus();
+  }, [allInterviews]);
 
   return (
     <main className="mx-auto flex w-full max-w-7xl flex-col gap-9 px-4 pt-7 pb-14">
@@ -233,6 +270,12 @@ export function CoursesView({
           {status}
         </p>
       </div>
+      {interviews?.top.length ? (
+        // Drawn up to the search, under it: it arrives after the list, and the search above never moves.
+        <div className="-mt-6">
+          <CoursesCompaniesRow top={interviews.top} />
+        </div>
+      ) : null}
 
       {nothing ? (
         <div
@@ -249,6 +292,11 @@ export function CoursesView({
         <>
           {search.sections.map((section) => {
             const id = SECTION_IDS[section.kind];
+            const shown =
+              section.kind === 'INTERVIEWS' && !allInterviews
+                ? interviewsSectionShownOf(section.found, interviews, { searched: search.query !== '' })
+                : section.found;
+            const hidden = section.found.length - shown.length;
             return (
               <section key={section.kind} className="flex flex-col gap-3" aria-labelledby={id}>
                 <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
@@ -257,11 +305,37 @@ export function CoursesView({
                   </h2>
                   <span className="text-sm text-muted-foreground">{section.sub}</span>
                 </div>
-                <ul className="m-0 grid list-none gap-3 p-0 sm:grid-cols-2">
-                  {section.found.map(({ course, name }) => (
-                    <CourseCard key={course.slug} course={course} name={name} mine={mineOf.get(course.slug) ?? null} />
-                  ))}
+                <ul
+                  ref={section.kind === 'INTERVIEWS' ? interviewsRef : undefined}
+                  className="m-0 grid list-none gap-3 p-0 sm:grid-cols-2"
+                >
+                  {shown.map(({ course, name, uses }) => {
+                    const company = companyOf.get(course.slug);
+                    return (
+                      <CourseCard
+                        key={course.slug}
+                        course={course}
+                        name={name}
+                        mine={mineOf.get(course.slug) ?? null}
+                        logo={company ? <CourseCompanyLogo company={company} /> : undefined}
+                        uses={uses?.length ? <CourseCompanyUses uses={uses} className="mt-[3px] mb-px" /> : undefined}
+                      />
+                    );
+                  })}
                 </ul>
+                {hidden > 0 ? (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="self-start"
+                    onClick={() => {
+                      interviewsFrom.current = shown.length;
+                      setAllInterviews(true);
+                    }}
+                  >
+                    Show all {countWords(section.found.length)} courses
+                  </Button>
+                ) : null}
               </section>
             );
           })}

@@ -1,12 +1,14 @@
 import { isValidElement, type ReactElement } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const { loadLearnCourses, loadLearnLessons } = vi.hoisted(() => ({
+const { loadInterviewsForCourses, loadLearnCourses, loadLearnLessons } = vi.hoisted(() => ({
+  loadInterviewsForCourses: vi.fn(),
   loadLearnCourses: vi.fn(),
   loadLearnLessons: vi.fn(),
 }));
 vi.mock('server-only', () => ({}));
 vi.mock('@/lib/learn/course.data', () => ({ loadLearnCourses, loadLearnLessons }));
+vi.mock('@/lib/interviews/learn.data', () => ({ loadInterviewsForCourses }));
 vi.mock('@/components/learn/courses/courses-live', () => ({ CoursesLive: () => null }));
 
 const { default: CoursesPage, generateMetadata } = await import('./page');
@@ -30,6 +32,12 @@ describe('all courses', () => {
     expect(liveOf(page).props).toEqual({ courses: courseCards, lessons: lessonList, query: 'go' });
     // Two values are not one search.
     expect(liveOf(await CoursesPage(props({ q: ['go', 'php'] }))).props).toMatchObject({ query: '' });
+  });
+
+  it('is the page of today while Interviews is not open to everyone: nothing of it is read or drawn', async () => {
+    const page = await CoursesPage(props());
+    expect(Object.keys(liveOf(page).props as object)).toEqual(['courses', 'lessons', 'query']);
+    expect(loadInterviewsForCourses).not.toHaveBeenCalled();
   });
 
   it('still draws the list when the lessons cannot be read: the search finds courses only', async () => {

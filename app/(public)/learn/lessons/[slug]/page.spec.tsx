@@ -1,7 +1,8 @@
 import { isValidElement } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const { loadLearnLessonPage, loadMergedFixes } = vi.hoisted(() => ({
+const { loadLearnCourse, loadLearnLessonPage, loadMergedFixes } = vi.hoisted(() => ({
+  loadLearnCourse: vi.fn(async (): Promise<unknown> => null),
   loadLearnLessonPage: vi.fn(),
   loadMergedFixes: vi.fn(async (): Promise<unknown> => null),
 }));
@@ -13,6 +14,7 @@ vi.mock('next/navigation', () => ({
 }));
 vi.mock('@/lib/learn/lesson-page.data', () => ({ loadLearnLessonPage }));
 vi.mock('@/lib/learn/real-issues.data', () => ({ loadMergedFixes }));
+vi.mock('@/lib/learn/course.data', () => ({ loadLearnCourse }));
 vi.mock('@/components/learn/lesson/lesson-screen', () => ({ LessonScreen: () => null }));
 
 const { default: LessonPage, generateMetadata } = await import('./page');
@@ -28,6 +30,7 @@ const props = (slug: string, query: Record<string, string> = {}) =>
   }) as unknown as PageProps<'/learn/lessons/[slug]'>;
 
 beforeEach(() => {
+  loadLearnCourse.mockReset().mockResolvedValue(null);
   loadLearnLessonPage.mockReset();
   loadMergedFixes.mockReset().mockResolvedValue(null);
 });
@@ -77,5 +80,19 @@ describe("a lesson's address", () => {
 
     loadLearnLessonPage.mockResolvedValueOnce(null);
     expect(await generateMetadata(props('route-cache-miss-8f3k'))).toEqual({});
+  });
+
+  it('is never indexed when its course is of the section Interviews, while Interviews is not open to everyone', async () => {
+    loadLearnLessonPage.mockResolvedValue(ours);
+    loadLearnCourse.mockResolvedValueOnce({ slug: setLesson.course.slug, kind: 'TOPIC', section: 'INTERVIEWS' });
+    const closed = await generateMetadata(props(setLesson.slug));
+    expect(closed.robots).toEqual({ index: false, follow: false });
+    expect(closed.title).toBe(setLesson.title);
+    expect(loadLearnCourse).toHaveBeenCalledWith(setLesson.course.slug);
+    // Any other course's lesson, or a course that cannot be read: as today.
+    loadLearnCourse.mockResolvedValueOnce({ slug: setLesson.course.slug, kind: 'TOPIC', section: null });
+    expect((await generateMetadata(props(setLesson.slug))).robots).toBeUndefined();
+    loadLearnCourse.mockRejectedValueOnce(new Error('down'));
+    expect((await generateMetadata(props(setLesson.slug))).robots).toBeUndefined();
   });
 });

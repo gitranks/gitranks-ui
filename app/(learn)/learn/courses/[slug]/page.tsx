@@ -3,6 +3,7 @@ import { notFound, permanentRedirect } from 'next/navigation';
 
 import { JsonLd } from '@/components/json-ld/json-ld';
 import { CourseLive } from '@/components/learn/course/course-live';
+import { withInterviewsSectionNoindex } from '@/lib/interviews/learn-noindex';
 import { loadLearnCourse, loadLearnCourses } from '@/lib/learn/course.data';
 import { courseHrefOf, coursePath } from '@/lib/learn/paths';
 import { LEARN_MISSING_METADATA, learnCourseJsonLd, learnCourseMetadata } from '@/lib/learn/seo/course';
@@ -20,7 +21,7 @@ export const instant = false;
 export async function generateMetadata({ params }: PageProps<'/learn/courses/[slug]'>): Promise<Metadata> {
   const { slug } = await params;
   const course = await loadLearnCourse(slug);
-  return course ? learnCourseMetadata(course) : LEARN_MISSING_METADATA;
+  return course ? withInterviewsSectionNoindex(learnCourseMetadata(course), course) : LEARN_MISSING_METADATA;
 }
 
 export default async function CoursePage({ params }: PageProps<'/learn/courses/[slug]'>) {

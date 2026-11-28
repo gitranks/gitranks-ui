@@ -151,7 +151,8 @@ export type LinePart = string | { product: SkillsProduct };
 /**
  * The line under the numbers, by kind: since when, with which product, and what. A contributor whose fixes were all
  * made with Learn is "With GitRanks Learn". Three languages at most, as the API sends them. Numbers that count built
- * projects (`countsBuildsOf`) name only the products the person uses, GitRanks Build among them.
+ * projects (`countsBuildsOf`) name only the products the person uses, GitRanks Build among them, fixes first whenever
+ * the page lists one (a learner's fixes made with Learn too).
  */
 export function sinceLineOf(
   numbers: Pick<SkillsNumbers, 'kind' | 'since' | 'languages' | 'fixes' | 'made' | 'figures'>,
@@ -172,11 +173,11 @@ export function sinceLineOf(
     const built: LinePart[] = ['projects built with ', { product: 'BUILD' }];
     const lessons: LinePart[] = ['lessons and practice with ', { product: 'LEARN' }];
     const parts =
-      numbers.kind === 'LEARNER'
-        ? [built, lessons]
-        : numbers.kind === 'BOTH'
+      numbers.kind === 'CONTRIBUTOR'
+        ? [fixes, built]
+        : numbers.kind === 'BOTH' || numbers.fixes > 0
           ? [fixes, built, lessons]
-          : [fixes, built];
+          : [built, lessons];
     return [`With GitRanks${since}: `, ...parts.flatMap((part, index) => (index ? [', ', ...part] : part)), '.'];
   }
   if (numbers.kind === 'LEARNER') {

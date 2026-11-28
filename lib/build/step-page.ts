@@ -1,5 +1,6 @@
 import type { Route } from 'next';
 
+import { durationWordsOf } from './duration';
 import { diffCountsOf, parseDiff } from './step-diff';
 import type {
   BuildFileStatus,
@@ -223,15 +224,10 @@ export function standingLineOf(
   }
 }
 
-/** "About an hour and a half": how long the base takes, in words. */
+/** "About an hour and a half": how long the base takes, in words, to start a line. Null for no time. */
 export function minutesWordsOf(minutes: number): string | null {
-  if (!Number.isFinite(minutes) || minutes <= 0) return null;
-  if (minutes < 55) return `About ${Math.max(5, Math.round(minutes / 5) * 5)} minutes`;
-  const halves = Math.round(minutes / 30);
-  const hours = Math.floor(halves / 2);
-  const half = halves % 2 === 1;
-  if (hours === 1) return half ? 'About an hour and a half' : 'About an hour';
-  return half ? `About ${hours} and a half hours` : `About ${hours} hours`;
+  const words = durationWordsOf(minutes);
+  return words ? words.charAt(0).toUpperCase() + words.slice(1) : null;
 }
 
 /** What a project needs, as the first step lists it: the runtimes in one line, then each other need with why. */
@@ -272,6 +268,29 @@ export function playgroundWordsOf(playground: string | null | undefined): string
   if (!text) return null;
   const lead = /^[A-Z][a-z]/.test(text) ? text[0].toLowerCase() + text.slice(1) : text;
   return `The playground of this project is ${lead}.`;
+}
+
+/**
+ * The first base step a playground's text names ("a small prompt you build in step 4"): where the playground starts.
+ * Null for a text that names no step.
+ */
+export function playgroundStartOf(playground: string | null | undefined): number | null {
+  const numbers = [...(playground ?? '').matchAll(/\bstep (\d+)\b/gi)].map((match) => Number(match[1]));
+  return numbers.length ? Math.min(...numbers) : null;
+}
+
+/**
+ * The playground line a step's "Try it" shows, or null where it does not fit. The text counts the base's steps, so a
+ * part's step (its numbers start again at 1) leaves it out, and so does a base step before the first step it names.
+ */
+export function stepPlaygroundOf(
+  page: Pick<BuildStepPage, 'part' | 'step'>,
+  playground: string | null | undefined,
+): string | null {
+  if (page.part) return null;
+  const start = playgroundStartOf(playground);
+  if (start !== null && page.step.number < start) return null;
+  return playgroundWordsOf(playground);
 }
 
 /** What a step's strip says of its place: "Step 7 of 16". */

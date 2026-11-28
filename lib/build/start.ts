@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 
+import { durationWordsOf } from './duration';
 import type { BuildLevel, BuildMine, BuildProjectCard, BuildStart } from './types';
 import type { AgentConnectVariant } from '@/lib/workspace/agent-connect';
 import { languageNameOf } from '@/lib/workspace/learn-question';
@@ -86,29 +87,12 @@ export const backToProjectOf = (project: Pick<BuildProjectCard, 'name'>) => `Bac
 
 const LEVEL_WORDS: Record<BuildLevel, string> = { 1: 'Easy', 2: 'Medium', 3: 'Hard' };
 
-const HOUR_WORDS = ['', 'an hour', 'two hours', 'three hours', 'four hours', 'five hours', 'six hours'];
-
-/**
- * How long a project's base takes, in words, to the nearest half hour: "about an hour and a half", "about two hours".
- * Under 45 minutes, to the nearest 5 minutes. Null for no time at all, which is never drawn.
- */
-export function aboutMinutesOf(minutes: number): string | null {
-  if (!Number.isFinite(minutes) || minutes <= 0) return null;
-  if (minutes < 45) return `about ${Math.max(5, Math.round(minutes / 5) * 5)} minutes`;
-  const halves = Math.round(minutes / 30);
-  const hours = Math.floor(halves / 2);
-  const half = halves % 2 === 1;
-  const words = HOUR_WORDS[hours] ?? `${hours} hours`;
-  if (!half) return `about ${words}`;
-  return hours === 1 ? 'about an hour and a half' : `about ${words.replace(/ hours$/, '')} and a half hours`;
-}
-
 /** A project's row under its line: "Easy · 16 steps · about an hour and a half". A count of nothing is left out. */
 export function projectRowMetaOf(project: Pick<BuildProjectCard, 'level' | 'baseSteps' | 'minutes'>): string {
   return [
     LEVEL_WORDS[project.level],
     project.baseSteps > 0 ? `${project.baseSteps} ${project.baseSteps === 1 ? 'step' : 'steps'}` : null,
-    aboutMinutesOf(project.minutes),
+    durationWordsOf(project.minutes) || null,
   ]
     .filter(Boolean)
     .join(' · ');

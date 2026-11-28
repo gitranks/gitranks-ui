@@ -10,7 +10,6 @@ import {
   buildsAndLearnsNumbers,
   builtKeyValue,
   builtMcpServer,
-  builtRows,
   builtWebServer,
   builtWebServerGold,
   contributorNumbers,
@@ -157,8 +156,11 @@ describe('the line under the numbers, with builds', () => {
     expect(textOf(sinceLineOf(builderNumbers))).toBe(
       'Built with GitRanks Build since November 2026: real, small projects made one step at a time with an AI agent, each with a test passed at the end.',
     );
-    expect(textOf(sinceLineOf(buildsAndLearnsNumbers))).toBe(
+    expect(textOf(sinceLineOf({ ...buildsAndLearnsNumbers, fixes: 0, made: [] }))).toBe(
       'With GitRanks since June 2026: projects built with GitRanks Build, lessons and practice with GitRanks Learn.',
+    );
+    expect(textOf(sinceLineOf(buildsAndLearnsNumbers))).toBe(
+      'With GitRanks since June 2026: fixes in real open-source projects with GitRanks Learn, projects built with GitRanks Build, lessons and practice with GitRanks Learn.',
     );
     expect(textOf(sinceLineOf(buildsAndFixesNumbers))).toBe(
       'With GitRanks since June 2026: fixes in real open-source projects with GitRanks Contribute, projects built with GitRanks Build.',
@@ -202,15 +204,38 @@ describe('the share picture and the Markdown copy of a page with builds', () => 
     ]);
   });
 
-  it('words the numbers and their line, links GitRanks Build, and lists no Built row', () => {
+  it('words the numbers and their line, links GitRanks Build, and lists each Built row as the page does', () => {
     for (const page of [builderPage, allThreePage]) {
       const text = skillsMarkdownOf(page, { now: SKILLS_NOW });
       expect(text).toContain('projects built');
       expect(text).toContain('[GitRanks Build](https://gitranks.com/build)');
       expect(text).not.toContain(LONG_DASH);
       expect(text.toLowerCase()).not.toContain('claim');
-      for (const row of builtRows) expect(text).not.toContain(row.line);
+      for (const row of page.built ?? []) expect(text).toContain(row.line);
     }
+    const text = skillsMarkdownOf(builderPage, { now: SKILLS_NOW });
+    expect(text).toContain(
+      '## Built\n\nMade with [GitRanks Build](https://gitranks.com/build): an AI agent wrote each project one small step at a time, and octocat passed a test on it alone at the end.\n\n',
+    );
+    expect(text).toContain(
+      '- [An MCP server](https://gitranks.com/build/mcp-server) · TypeScript · 16 steps · 2 of 5 optional parts · Repeated after a week · Answered every step · built 20 Nov\n  A small program that gives an AI agent new tools, written from nothing with no library.',
+    );
+    expect(text).toContain(
+      '- [A key-value database](https://gitranks.com/build/key-value-database) · TypeScript and Python · 14 steps · built 3 Nov\n  Set, get and delete, kept on disk through a restart.',
+    );
+  });
+
+  it('puts Built between the fixes and the courses, and leaves it out with no built project', () => {
+    const text = skillsMarkdownOf(allThreePage, { now: SKILLS_NOW });
+    const fixes = text.indexOf('## Fixes in real projects');
+    const built = text.indexOf('## Built');
+    const courses = text.indexOf('## Courses');
+    expect(fixes).toBeGreaterThan(-1);
+    expect(built).toBeGreaterThan(fixes);
+    expect(courses).toBeGreaterThan(built);
+    expect(text).not.toContain(builtKeyValue.line);
+    expect(skillsMarkdownOf(contributorPage, { now: SKILLS_NOW })).not.toContain('## Built');
+    expect(skillsMarkdownOf({ ...builderPage, built: [] }, { now: SKILLS_NOW })).not.toContain('## Built');
   });
 });
 

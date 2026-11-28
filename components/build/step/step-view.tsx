@@ -25,12 +25,12 @@ import {
   paragraphsOf,
   personalLanguageOf,
   placeWordsOf,
-  playgroundWordsOf,
   playItemOf,
   type StepPersonal,
   startLanguageOf,
   stepFilesOf,
   stepLanguagesOf,
+  stepPlaygroundOf,
   stepSideOf,
   stripSquaresOf,
   stripStepsOf,
@@ -194,7 +194,7 @@ export function BuildStepView({
   };
   const drawn = drawnWholeFile ? wholeOf(drawnWholeFile) : null;
   const play = page.play.map(playItemOf).filter((item) => item.text);
-  const playground = playgroundWordsOf(project?.playground);
+  const playground = stepPlaygroundOf(page, project?.playground);
   const more = paragraphsOf(page.more);
   const commit = side?.commit ?? null;
 

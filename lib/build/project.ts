@@ -1,5 +1,6 @@
 import type { Route } from 'next';
 
+import { durationWordsOf } from './duration';
 import { buildCoursePath, buildProjectPath, buildStepPath } from './paths';
 import { type TestStanding, testStandingOf } from './test';
 import type {
@@ -40,23 +41,6 @@ function orList(names: string[]): string {
 
 /** A project's languages as one phrase: "TypeScript or Python". */
 export const languagesWordsOf = (languages: readonly BuildLanguage[]): string => orList(languages.map(languageNameOf));
-
-const NUMBER_WORDS = ['', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten'];
-
-/**
- * How long a project takes, in words, to the nearest half hour: "about an hour", "about an hour and a half", "about two
- * hours". Under three quarters of an hour, in minutes to the nearest five.
- */
-export function durationWordsOf(minutes: number): string {
-  if (!Number.isFinite(minutes) || minutes <= 0) return '';
-  if (minutes < 45) return `about ${Math.max(5, Math.round(minutes / 5) * 5)} minutes`;
-  const halves = Math.round(minutes / 30);
-  const hours = Math.floor(halves / 2);
-  const half = halves % 2 === 1;
-  if (hours === 1) return half ? 'about an hour and a half' : 'about an hour';
-  const word = NUMBER_WORDS[hours] ?? String(hours);
-  return half ? `about ${word} and a half hours` : `about ${word} hours`;
-}
 
 /** "16 steps", "1 step". */
 export const stepsWordsOf = (count: number): string => `${count} ${count === 1 ? 'step' : 'steps'}`;

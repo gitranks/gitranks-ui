@@ -21,7 +21,6 @@ import {
   boxTestOf,
   dayOf,
   dayYearOf,
-  durationWordsOf,
   goldWordsOf,
   languagesWordsOf,
   levelWordOf,
@@ -50,14 +49,9 @@ describe("a project's facts", () => {
     expect(languagesWordsOf(['python'])).toBe('Python');
   });
 
-  it('round the time to the nearest half hour, in words', () => {
-    expect(durationWordsOf(60)).toBe('about an hour');
-    expect(durationWordsOf(90)).toBe('about an hour and a half');
-    expect(durationWordsOf(120)).toBe('about two hours');
-    expect(durationWordsOf(150)).toBe('about two and a half hours');
-    expect(durationWordsOf(180)).toBe('about three hours');
-    expect(durationWordsOf(30)).toBe('about 30 minutes');
-    expect(durationWordsOf(0)).toBe('');
+  it('give the base its length and its time, the time left out when there is none', () => {
+    expect(baseWordsOf({ baseSteps: 16, minutes: 90 })).toBe('16 steps, about an hour and a half');
+    expect(baseWordsOf({ baseSteps: 4, minutes: 20 })).toBe('4 steps, about half an hour');
     expect(baseWordsOf({ baseSteps: 1, minutes: 0 })).toBe('1 step');
   });
 

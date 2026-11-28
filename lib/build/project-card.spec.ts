@@ -6,7 +6,6 @@ import { mcpServerCard } from './__fixtures__/projects';
 import {
   buildPlaceOf,
   cardPlacesOf,
-  minutesWords,
   numberWords,
   numberWordsFirst,
   placeWordsOf,
@@ -14,24 +13,6 @@ import {
 } from './project-card';
 
 describe("A project card's words", () => {
-  it.each([
-    [10, 'about 10 minutes'],
-    [30, 'about half an hour'],
-    [60, 'about an hour'],
-    [90, 'about an hour and a half'],
-    [120, 'about two hours'],
-    [150, 'about two and a half hours'],
-    [180, 'about three hours'],
-    [100, 'about an hour and a half'],
-  ])('%i minutes read as %s', (minutes, words) => {
-    expect(minutesWords(minutes)).toBe(words);
-  });
-
-  it('says nothing for no time', () => {
-    expect(minutesWords(0)).toBe('');
-    expect(minutesWords(Number.NaN)).toBe('');
-  });
-
   it('writes the facts line as the boards do, leaving out what is missing', () => {
     expect(projectFactsOf(mcpServerCard)).toBe('Easy · 16 steps · about an hour and a half');
     expect(projectFactsOf({ level: 3, baseSteps: 24, minutes: 180 })).toBe('Hard · 24 steps · about three hours');

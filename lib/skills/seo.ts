@@ -37,9 +37,16 @@ function lessonsClauseOf(figure: SkillsFigure | undefined): string | null {
   return `${counted(figure.value, 'lesson learned', 'lessons learned')}${where}`;
 }
 
+/** "3 projects built with GitRanks Build"; null without one. */
+function builtClauseOf(figure: SkillsFigure | undefined): string | null {
+  if (!figure?.value) return null;
+  return `${counted(figure.value, 'project built', 'projects built')} with GitRanks Build`;
+}
+
 /**
  * The description: "5 fixes merged in 5 open-source projects, in Go, Python and TypeScript.", "103 lessons learned in 3
- * courses, 2 mastered.", or both clauses for someone who uses both. A page with no number says what it is for.
+ * courses, 2 mastered.", "3 projects built with GitRanks Build.", or the clauses together for someone who does more
+ * than one: fixes, then builds, then lessons. A page with no number says what it is for.
  */
 export function skillsDescriptionOf(page: Pick<SkillsPage, 'login' | 'numbers'>): string {
   const { numbers } = page;
@@ -48,11 +55,14 @@ export function skillsDescriptionOf(page: Pick<SkillsPage, 'login' | 'numbers'>)
   const fixes = fixesClauseOf(find('FIXES_MERGED') ?? find('PULL_REQUESTS_OPEN'));
   const languages = numbers.languages.slice(0, 3);
   const fixesPart = fixes && languages.length ? `${fixes}, in ${listWords(languages)}` : fixes;
+  const built = builtClauseOf(find('PROJECTS_BUILT'));
   const lessons = lessonsClauseOf(find('LESSONS_LEARNED'));
   const mastered = find('MASTERED');
-  if (fixesPart && lessons) return `${fixesPart}, and ${lessons}.`;
-  if (fixesPart) return `${fixesPart}.`;
+  const clauses = [fixesPart, built, lessons].filter((clause): clause is string => !!clause);
+  if (clauses.length > 1) return `${clauses.slice(0, -1).join(', ')}, and ${clauses[clauses.length - 1]}.`;
   if (lessons) return mastered?.value ? `${lessons}, ${countOf(mastered.value)} mastered.` : `${lessons}.`;
+  if (clauses.length) return `${clauses[0]}.`;
+  if (numbers.kind === 'BUILDER') return `What ${page.login} built with GitRanks Build.`;
   return `What ${page.login} fixed and learned with GitRanks.`;
 }
 

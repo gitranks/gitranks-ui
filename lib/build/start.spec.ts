@@ -11,7 +11,6 @@ import {
   startTestLeft,
 } from './__fixtures__/start';
 import {
-  aboutMinutesOf,
   BUILD_AGENT_VARIANT,
   BUILD_START_LATE_MS,
   BUILD_START_METADATA,
@@ -51,19 +50,7 @@ describe("the start flow's words", () => {
 
   it('never draw a count of nothing in a row', () => {
     expect(projectRowMetaOf({ level: 3, baseSteps: 0, minutes: 0 })).toBe('Hard');
-    expect(projectRowMetaOf({ level: 1, baseSteps: 1, minutes: 20 })).toBe('Easy · 1 step · about 20 minutes');
-  });
-
-  it('say a time to the nearest half hour', () => {
-    expect(aboutMinutesOf(0)).toBeNull();
-    expect(aboutMinutesOf(Number.NaN)).toBeNull();
-    expect(aboutMinutesOf(3)).toBe('about 5 minutes');
-    expect(aboutMinutesOf(60)).toBe('about an hour');
-    expect(aboutMinutesOf(75)).toBe('about an hour and a half');
-    expect(aboutMinutesOf(90)).toBe('about an hour and a half');
-    expect(aboutMinutesOf(120)).toBe('about two hours');
-    expect(aboutMinutesOf(150)).toBe('about two and a half hours');
-    expect(aboutMinutesOf(600)).toBe('about 10 hours');
+    expect(projectRowMetaOf({ level: 1, baseSteps: 1, minutes: 20 })).toBe('Easy · 1 step · about half an hour');
   });
 
   it('say where the started build stands, in its language', () => {

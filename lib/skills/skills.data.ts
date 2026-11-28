@@ -72,7 +72,10 @@ const mineWithBuildOf = (mine: SkillsMine): SkillsMine => ({
   usesBuild: mine.usesBuild ?? false,
 });
 
-/** Fifteen minutes fresh, as the API keeps its own answers. */
+/**
+ * Fifteen minutes fresh, as the API keeps its own answers. An answer of no page is read again after a minute
+ * (`'minutes'`): a page that comes into being (a builder's, once Build opens to everyone) shows soon, not a day later.
+ */
 const SKILLS_LIFE = { stale: 300, revalidate: 900, expire: 86_400 };
 
 /** A public read: its answer (null when there is no public page), or `failed` when the API could not be read. */
@@ -91,7 +94,8 @@ export async function loadSkillsPage(login: string): Promise<SkillsRead<SkillsPa
         source: 'ssr',
       },
     );
-    cacheLife(SKILLS_LIFE);
+    if (skillsPage) cacheLife(SKILLS_LIFE);
+    else cacheLife('minutes');
     return { value: skillsPage ? withBuiltOf(skillsPage) : null, failed: false };
   } catch {
     cacheLife('minutes');
@@ -105,7 +109,8 @@ export async function loadSkillsBrief(login: string): Promise<SkillsRead<SkillsB
   cacheTag(skillsTag(login));
   try {
     const { skillsBrief } = await graphqlDirect(SkillsBriefDocument, { login }, { source: 'client' });
-    cacheLife(SKILLS_LIFE);
+    if (skillsBrief) cacheLife(SKILLS_LIFE);
+    else cacheLife('minutes');
     return { value: skillsBrief ?? null, failed: false };
   } catch {
     cacheLife('minutes');

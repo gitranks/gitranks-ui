@@ -221,6 +221,8 @@ describe("a step's page, read from the top", () => {
     );
     expect(textOf('[data-build-step-place]')).toBe('Step 3 of 6');
     expect($$('[data-build-squares] a')).toHaveLength(6);
+    expect($$('[data-build-step-try] li')).toHaveLength(1);
+    expect($('[data-build-step-try] p')).toBeNull();
   });
 
   it('draws a sketch, and leaves the squares out when the project could not be read', async () => {

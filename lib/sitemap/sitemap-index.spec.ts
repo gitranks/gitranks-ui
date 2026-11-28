@@ -9,11 +9,13 @@ import {
 } from './sitemap-index';
 import { fetchOrgSitemapParts } from '@/graphql/helpers/fetch-org-sitemap-parts';
 import { fetchRepoSitemapParts } from '@/graphql/helpers/fetch-repo-sitemap-parts';
+import { loadBuildOpenToEveryone } from '@/lib/build/build-everyone.data';
 import { PackageRegistry, RepoSitemapTab } from '@/types/generated/graphql';
 
 vi.mock('@/graphql/helpers/fetch-repo-sitemap-parts', () => ({ fetchRepoSitemapParts: vi.fn() }));
 vi.mock('@/graphql/helpers/fetch-org-sitemap-parts', () => ({ fetchOrgSitemapParts: vi.fn() }));
 vi.mock('./package-sitemap-data', () => ({ fetchPackageSitemapParts: vi.fn(), fetchRepoTabSitemapParts: vi.fn() }));
+vi.mock('@/lib/build/build-everyone.data', () => ({ loadBuildOpenToEveryone: vi.fn() }));
 
 const paths = (locs: string[]) => locs.map((loc) => new URL(loc).pathname);
 
@@ -24,6 +26,7 @@ describe('sitemap index', () => {
     vi.mocked(fetchOrgSitemapParts).mockReset().mockResolvedValue(0);
     vi.mocked(fetchPackageSitemapParts).mockReset().mockResolvedValue(0);
     vi.mocked(fetchRepoTabSitemapParts).mockReset().mockResolvedValue(0);
+    vi.mocked(loadBuildOpenToEveryone).mockReset().mockResolvedValue(false);
   });
 
   it('lists the fixed segments, then one file per repository part', () => {
@@ -78,6 +81,20 @@ describe('sitemap index', () => {
     expect(open).toContain('/sitemaps/interviews/sitemap.xml');
     expect(open.indexOf('/sitemaps/interviews/sitemap.xml')).toBeLessThan(
       open.indexOf('/sitemaps/repos/sitemap/0.xml'),
+    );
+  });
+
+  it("lists Build's sitemap only once Build is open to everyone, before the repository parts", async () => {
+    expect(paths(listChildSitemapLocs(2, 1))).not.toContain('/sitemaps/build/sitemap.xml');
+    const open = paths(listChildSitemapLocs(2, 1, false, true));
+    expect(open).toContain('/sitemaps/build/sitemap.xml');
+    expect(open.indexOf('/sitemaps/build/sitemap.xml')).toBeLessThan(open.indexOf('/sitemaps/repos/sitemap/0.xml'));
+
+    vi.mocked(fetchRepoSitemapParts).mockResolvedValue(1);
+    expect(await (await sitemapIndexResponse()).text()).not.toContain('/sitemaps/build/');
+    vi.mocked(loadBuildOpenToEveryone).mockResolvedValue(true);
+    expect(await (await sitemapIndexResponse()).text()).toContain(
+      '<loc>https://example.test/sitemaps/build/sitemap.xml</loc>',
     );
   });
 

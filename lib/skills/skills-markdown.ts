@@ -1,5 +1,6 @@
 import { skillsPath, skillsProfilePath } from './paths';
-import type { SkillsCourse, SkillsFix, SkillsPage } from './skills.types';
+import type { SkillsBuilt, SkillsCourse, SkillsFix, SkillsPage } from './skills.types';
+import { builtLineOf, builtRowOf } from './skills-built';
 import { COURSE_KIND_WORDS, courseCountsOf, finishedWordsOf, groupCountOf, notStartedLineOf } from './skills-courses';
 import {
   countOf,
@@ -13,6 +14,7 @@ import {
 } from './skills-figures';
 import { fixesLineOf, fixLessonOf, fixLinksOf, fixStateWordsOf, MADE_WORDS, namesProduct } from './skills-fixes';
 import { BUILD_HOME_PATH } from '@/lib/build/paths';
+import { MARK_WORDS } from '@/lib/build/project-card';
 import { coursePath, LEARN_HOME_PATH, learnLessonPath } from '@/lib/learn/paths';
 import { absoluteUrl } from '@/lib/seo/site';
 import { WORKSPACE_PATHS } from '@/lib/workspace/paths';
@@ -61,6 +63,19 @@ function fixLineOf(fix: SkillsFix, { both, now }: { both: boolean; now: Date }) 
   return `- ${parts.filter(Boolean).join(' · ')}`;
 }
 
+/** One built project: what was built (a link to its page), its facts, its marks and the day; its one line under it. */
+function builtRowLineOf(row: SkillsBuilt, now: Date): string {
+  const words = builtRowOf(row, now);
+  const parts = [
+    link(words.thing, words.href),
+    ...words.facts,
+    ...words.marks.map((mark) => MARK_WORDS[mark]),
+    words.built,
+  ];
+  const line = words.line ? `\n  ${oneLine(words.line)}` : '';
+  return `- ${parts.filter(Boolean).join(' · ')}${line}`;
+}
+
 /** One course: its name, its kind and counts, each group started with its count, and the groups not started. */
 function courseSectionOf(course: SkillsCourse, now: Date): string {
   const kind = COURSE_KIND_WORDS[course.course.kind] ?? 'Course';
@@ -76,7 +91,7 @@ function courseSectionOf(course: SkillsCourse, now: Date): string {
   ].join('\n');
 }
 
-/** The copy: the heading, the numbers with their line, the fixes, and the courses. */
+/** The copy: the heading, the numbers with their line, the fixes, the projects built, and the courses. */
 export function skillsMarkdownOf(page: SkillsPage, { now }: { now: Date }): string {
   const { numbers } = page;
   const builds = countsBuildsOf(numbers);
@@ -89,6 +104,7 @@ export function skillsMarkdownOf(page: SkillsPage, { now }: { now: Date }): stri
   const rows = page.fixes.rows.map((fix) => fixLineOf(fix, { both, now }));
   const more = page.fixes.total - page.fixes.rows.length;
   const { courses } = page;
+  const built = page.built ?? [];
 
   const sections = [
     `# ${page.login}’s skills`,
@@ -104,6 +120,13 @@ export function skillsMarkdownOf(page: SkillsPage, { now }: { now: Date }): stri
             ...rows,
             ...(more > 0 ? ['', `And ${countOf(more)} more on the page.`] : []),
           ].join('\n'),
+        ]
+      : []),
+    ...(built.length
+      ? [
+          ['## Built', '', lineOf(builtLineOf(page.login)), '', ...built.map((row) => builtRowLineOf(row, now))].join(
+            '\n',
+          ),
         ]
       : []),
     ...(courses.length ? ['## Courses', ...courses.map((course) => courseSectionOf(course, now))] : []),

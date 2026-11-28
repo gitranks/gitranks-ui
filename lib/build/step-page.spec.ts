@@ -28,6 +28,7 @@ import {
   paragraphsOf,
   personalLanguageOf,
   placeWordsOf,
+  playgroundStartOf,
   playgroundWordsOf,
   playItemOf,
   type StepPersonal,
@@ -36,6 +37,7 @@ import {
   startLanguageOf,
   stepDescriptionOf,
   stepFilesOf,
+  stepPlaygroundOf,
   stepSideOf,
   stripSquaresOf,
   stripStepsOf,
@@ -187,8 +189,9 @@ describe("a step's words", () => {
   it('says how long the base takes', () => {
     expect(minutesWordsOf(90)).toBe('About an hour and a half');
     expect(minutesWordsOf(60)).toBe('About an hour');
-    expect(minutesWordsOf(40)).toBe('About 40 minutes');
-    expect(minutesWordsOf(150)).toBe('About 2 and a half hours');
+    expect(minutesWordsOf(40)).toBe('About half an hour');
+    expect(minutesWordsOf(10)).toBe('About 10 minutes');
+    expect(minutesWordsOf(150)).toBe('About two and a half hours');
     expect(minutesWordsOf(0)).toBeNull();
   });
 
@@ -217,6 +220,25 @@ describe("a step's words", () => {
     );
     expect(playgroundWordsOf('MCP Inspector')).toBe('The playground of this project is MCP Inspector.');
     expect(playgroundWordsOf('')).toBeNull();
+  });
+
+  it('shows the playground only on the base, from the first step its text names', () => {
+    const text =
+      'Your own agent, with your server connected to it from step 6. Before that, a small prompt you build in step 4.';
+    expect(playgroundStartOf(text)).toBe(4);
+    expect(playgroundStartOf('A prompt you build in step 2: start kv. From step 3: set name Ada.')).toBe(2);
+    expect(playgroundStartOf(mcpServerProject.playground)).toBeNull();
+    const at = (number: number) => ({ ...listTheToolsStep, step: mcpServerStep(number) });
+    expect(stepPlaygroundOf(at(3), text)).toBeNull();
+    expect(stepPlaygroundOf(at(4), text)).toBe(
+      'The playground of this project is your own agent, with your server connected to it from step 6. Before that, a small prompt you build in step 4.',
+    );
+    expect(stepPlaygroundOf(at(1), mcpServerProject.playground)).toBe(
+      'The playground of this project is your own agent, with your server connected to it.',
+    );
+    expect(stepPlaygroundOf(partStep, mcpServerProject.playground)).toBeNull();
+    expect(stepPlaygroundOf({ ...partStep, step: mcpServerStep(8) }, text)).toBeNull();
+    expect(stepPlaygroundOf(at(7), null)).toBeNull();
   });
 
   it('knows the first step of the base, and describes a step from its first paragraph', () => {

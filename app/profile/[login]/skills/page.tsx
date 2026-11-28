@@ -33,7 +33,8 @@ const failedRead = (login: string) => {
 /**
  * A person's Skills tab: what they proved with GitRanks, the same page for everyone, cached fifteen minutes under the
  * person's tag (which hiding the page expires at once). "Not found" only ever means no public page: the same for
- * everyone, with its owner's view read in the browser, never here. A failed read shows the error page instead. The
+ * everyone, with its owner's view read in the browser, never here, and read again after a minute, so a page that
+ * comes into being shows soon. A failed read shows the error page instead. The
  * profile's left column is the layout's, around this page and its "not found" alike.
  */
 export default async function ProfileSkills({ params }: PageProps<'/profile/[login]/skills'>) {
@@ -42,11 +43,12 @@ export default async function ProfileSkills({ params }: PageProps<'/profile/[log
 
   const [user, skills] = await Promise.all([fetchProfilePageOverview(login), loadSkillsPage(login)]);
   if (skills.failed) failedRead(login);
-  cacheLife({ stale: 300, revalidate: 900, expire: 86_400 });
 
   if (!user || !skills.value) {
+    cacheLife('minutes');
     notFound();
   }
+  cacheLife({ stale: 300, revalidate: 900, expire: 86_400 });
 
   return (
     <>

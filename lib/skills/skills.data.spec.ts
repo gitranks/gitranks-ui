@@ -30,11 +30,14 @@ describe('the public Skills reads', () => {
     expect(cacheLife).toHaveBeenCalledWith({ stale: 300, revalidate: 900, expire: 86_400 });
   });
 
-  it('say there is no public page as a null value, kept as long', async () => {
+  it('say there is no public page as a null value, kept only for minutes', async () => {
     graphqlDirect.mockResolvedValueOnce({ skillsPage: null });
     await expect(data.loadSkillsPage('octocat')).resolves.toEqual({ value: null, failed: false });
+    expect(cacheLife).toHaveBeenCalledExactlyOnceWith('minutes');
+    cacheLife.mockReset();
     graphqlDirect.mockResolvedValueOnce({ skillsBrief: null });
     await expect(data.loadSkillsBrief('octocat')).resolves.toEqual({ value: null, failed: false });
+    expect(cacheLife).toHaveBeenCalledExactlyOnceWith('minutes');
   });
 
   it('catch a failed read inside, keep it for minutes, and say it failed', async () => {

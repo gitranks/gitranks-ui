@@ -1,6 +1,16 @@
 import { describe, expect, it, vi } from 'vitest';
 
-import { bothPage, contributorPage, firstFixPage, firstLessonPage, learnerPage } from './__fixtures__/skills';
+import {
+  allThreePage,
+  bothPage,
+  builderPage,
+  buildsAndFixesNumbers,
+  buildsAndLearnsNumbers,
+  contributorPage,
+  firstFixPage,
+  firstLessonPage,
+  learnerPage,
+} from './__fixtures__/skills';
 import { skillsDescriptionOf, skillsJsonLdOf, skillsKnowsAboutOf, skillsMetadataOf, skillsTitleOf } from './seo';
 import type { SkillsPage } from './skills.types';
 import { skillsCardOf, skillsCardUrlOf } from './skills-share-card';
@@ -43,9 +53,24 @@ describe("a Skills page's title and description", () => {
     );
   });
 
+  it('says what a builder built, and puts the builds between the fixes and the lessons', () => {
+    expect(skillsDescriptionOf(builderPage)).toBe('3 projects built with GitRanks Build.');
+    expect(skillsDescriptionOf(allThreePage)).toBe(
+      '3 fixes merged in 3 open-source projects, in Go, Python and TypeScript, 2 projects built with GitRanks Build, and 103 lessons learned in 3 courses.',
+    );
+    expect(skillsDescriptionOf({ ...contributorPage, numbers: buildsAndFixesNumbers })).toBe(
+      '3 fixes merged in 3 open-source projects, in Go, Python and TypeScript, and 2 projects built with GitRanks Build.',
+    );
+    expect(skillsDescriptionOf({ ...learnerPage, numbers: buildsAndLearnsNumbers })).toBe(
+      '2 projects built with GitRanks Build, and 103 lessons learned in 3 courses.',
+    );
+  });
+
   it('says what the page is for when no number has anything in it', () => {
     const empty = { ...contributorPage, numbers: { ...contributorPage.numbers, figures: [] } };
     expect(skillsDescriptionOf(empty)).toBe('What octocat fixed and learned with GitRanks.');
+    const builder = { ...builderPage, numbers: { ...builderPage.numbers, figures: [] } };
+    expect(skillsDescriptionOf(builder)).toBe('What octocat built with GitRanks Build.');
   });
 });
 

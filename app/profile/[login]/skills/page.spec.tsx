@@ -49,11 +49,14 @@ describe("a person's Skills page", () => {
     expect(html).toContain('"ProfilePage"');
   });
 
-  it('is not found, the same for everyone, without a public page or a person', async () => {
+  it('is not found, the same for everyone, without a public page or a person, kept only for minutes', async () => {
     loadSkillsPage.mockResolvedValueOnce({ value: null, failed: false });
     await expect(ProfileSkills(props('octocat'))).rejects.toThrow('NEXT_NOT_FOUND');
+    expect(cacheLife).toHaveBeenCalledExactlyOnceWith('minutes');
+    cacheLife.mockClear();
     fetchProfilePageOverview.mockResolvedValueOnce(null);
     await expect(ProfileSkills(props('octocat'))).rejects.toThrow('NEXT_NOT_FOUND');
+    expect(cacheLife).toHaveBeenCalledExactlyOnceWith('minutes');
   });
 
   it('shows the error page on a failed read, never "no Skills page"', async () => {

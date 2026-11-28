@@ -1,3 +1,4 @@
+import { durationWordsOf } from './duration';
 import type { BuildLanguage, BuildLevel, BuildMine, BuildProjectCard } from './types';
 
 /*
@@ -22,27 +23,12 @@ export const numberWordsFirst = (count: number): string => {
   return words.charAt(0).toUpperCase() + words.slice(1);
 };
 
-/**
- * How long a project takes, as a person reads it: to the nearest half hour, "about an hour and a half", "about two
- * hours"; under a quarter of an hour, in minutes. Nothing for no time.
- */
-export function minutesWords(minutes: number): string {
-  if (!Number.isFinite(minutes) || minutes <= 0) return '';
-  const halves = Math.round(minutes / 30);
-  if (halves === 0) return `about ${Math.max(5, Math.round(minutes / 5) * 5)} minutes`;
-  if (halves === 1) return 'about half an hour';
-  if (halves === 2) return 'about an hour';
-  if (halves === 3) return 'about an hour and a half';
-  const hours = Math.floor(halves / 2);
-  return `about ${numberWords(hours)}${halves % 2 ? ' and a half' : ''} hours`;
-}
-
 /** A card's last line: "Easy · 16 steps · about an hour and a half". A fact the API did not give is left out. */
 export function projectFactsOf(card: Pick<BuildProjectCard, 'level' | 'baseSteps' | 'minutes'>): string {
   const facts = [
     LEVEL_WORDS[card.level] ?? '',
     card.baseSteps > 0 ? `${card.baseSteps.toLocaleString('en-US')} ${card.baseSteps === 1 ? 'step' : 'steps'}` : '',
-    minutesWords(card.minutes),
+    durationWordsOf(card.minutes),
   ];
   return facts.filter(Boolean).join(' · ');
 }

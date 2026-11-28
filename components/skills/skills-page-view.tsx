@@ -21,7 +21,6 @@ export function SkillsPageView({
   onMore,
   loadingMore = false,
   leftLine = null,
-  builtOnlyYou = false,
 }: {
   page: SkillsPage;
   /** The time the page is drawn at, for its dates. */
@@ -35,8 +34,6 @@ export function SkillsPageView({
   loadingMore?: boolean;
   /** The line under the fixes where the next ones cannot be read. */
   leftLine?: string | null;
-  /** The Built rows are the owner's own, which only they see: the section says so. */
-  builtOnlyYou?: boolean;
 }) {
   return (
     <div className="flex min-w-0 flex-col gap-8" data-skills-page={page.numbers.kind}>
@@ -51,7 +48,7 @@ export function SkillsPageView({
         loading={loadingMore}
         leftLine={leftLine}
       />
-      <SkillsBuiltSection built={page.built} login={page.login} now={now} onlyYou={builtOnlyYou} />
+      <SkillsBuiltSection built={page.built} login={page.login} now={now} />
       <SkillsCoursesSection courses={page.courses} now={now} />
       {other ? <SkillsProductBox box={other} /> : null}
     </div>

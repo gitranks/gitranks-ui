@@ -3,13 +3,14 @@
 import type { Route } from 'next';
 import { lazy, type ReactNode, Suspense, useEffect, useState } from 'react';
 
-import { buildOpenForDocument } from './build-viewer';
 import type { GoFurtherParts } from './doors/go-further-rows';
+import { hasSessionHint } from '@/lib/session-hint';
 
 /*
  * The doors into Build as Learn's and Contribute's pages import them: the only part of Build those pages hold. It
- * draws today's page, and fetches the doors' code only once this browser knows Build is open to its person, so a
- * reader Build is closed to downloads none of it. Build's own words live in the parts fetched.
+ * draws the page without them, and fetches the doors' code only in a browser with a session (a door is about the
+ * person's own builds, so a visitor has none), so a visitor downloads none of it. Build's own words live in the parts
+ * fetched.
  */
 
 const loadDoors = () => import('./doors/doors-parts');
@@ -18,30 +19,24 @@ const FurtherRows = lazy(() => loadDoors().then((parts) => ({ default: parts.GoF
 const IssueLine = lazy(() => loadDoors().then((parts) => ({ default: parts.IssueBuildLine })));
 
 /**
- * Whether Build is open to this browser's person: no while hydrating and for anyone closed. Once it is, the doors'
- * code and the doors of `of` are asked together, so the door is drawn after one trip, not two.
+ * Whether this browser may draw a door: no while hydrating and for a visitor. With a session, the doors' code and the
+ * doors of `of` are asked together, so the door is drawn after one trip, not two.
  */
 function useDoorsOpen(of: { course: string } | { lesson: string }): boolean {
   const [open, setOpen] = useState(false);
   const key = 'course' in of ? `course:${of.course}` : `lesson:${of.lesson}`;
   // biome-ignore lint/correctness/useExhaustiveDependencies: `key` names `of` whole.
   useEffect(() => {
-    let live = true;
-    void buildOpenForDocument().then((yes) => {
-      if (!yes || !live) return;
-      void loadDoors()
-        .then((parts) => parts.readBuildDoors(of))
-        .catch(() => {});
-      setOpen(true);
-    });
-    return () => {
-      live = false;
-    };
+    if (!hasSessionHint(document.cookie)) return;
+    void loadDoors()
+      .then((parts) => parts.readBuildDoors(of))
+      .catch(() => {});
+    setOpen(true);
   }, [key]);
   return open;
 }
 
-/** The line under a course's numbers: none, until Build is open to the person and a project names the course. */
+/** The line under a course's numbers: none for a visitor, and until a project names the course. */
 export function CourseBuildDoor({ course }: { course: string }) {
   const open = useDoorsOpen({ course });
   if (!open) return null;
@@ -63,7 +58,7 @@ export function GoFurtherDoor({ course, parts, today }: { course: string; parts:
   );
 }
 
-/** The line after "Not for me" on an issue: none, until Build is open to the person and there is a door to offer. */
+/** The line after "Not for me" on an issue: none for a visitor, and until there is a door to offer. */
 export function IssueBuildDoor({
   lesson,
 }: {

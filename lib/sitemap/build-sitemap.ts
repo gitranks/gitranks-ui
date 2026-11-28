@@ -17,14 +17,9 @@ export type BuildSitemapProject = { slug: string; base: Pick<BuildProjectPage['b
 /**
  * GitRanks Build's pages for search engines: Home and Projects, then each live project and each step
  * of its base. How Build works (its canonical address is Home), a part's steps, the tests and a person's own pages (My builds, the start flow) are left out. A project
- * whose page could not be read keeps its own address, without its steps. Nothing at all while Build is not open to
- * everyone: until then every Build page is kept out of search engines.
+ * whose page could not be read keeps its own address, without its steps.
  */
-export function buildSitemapEntries(
-  projects: readonly BuildSitemapProject[],
-  openToEveryone: boolean,
-): MetadataRoute.Sitemap {
-  if (!openToEveryone) return [];
+export function buildSitemapEntries(projects: readonly BuildSitemapProject[]): MetadataRoute.Sitemap {
   const seen = new Set<string>();
   const live = projects.filter((project) => {
     if (!isBuildProjectSlug(project.slug) || seen.has(project.slug)) return false;

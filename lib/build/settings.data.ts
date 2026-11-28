@@ -6,7 +6,7 @@ import type { BuildSettings } from './types';
 import { graphqlDirect } from '@/lib/graphql/graphql-direct';
 
 /**
- * The signed-in person's Build settings: null when they have no build yet, when Build is not open to them, and on any
+ * The signed-in person's Build settings: null when they have no build yet, and on any
  * failure (Settings then shows no row). Never kept.
  */
 export async function loadBuildSettings(githubLogin: string): Promise<BuildSettings | null> {

@@ -1,6 +1,5 @@
 /*
- * The doors' parts, fetched as one piece by `components/build/doors-gate.tsx` only once Build is known to be open to
- * the viewer.
+ * The doors' parts, fetched as one piece by `components/build/doors-gate.tsx` only in a browser with a session.
  */
 
 export { CourseBuildLine } from './course-build-line';

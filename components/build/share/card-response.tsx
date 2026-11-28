@@ -1,7 +1,6 @@
 import 'server-only';
 
 import { BuildShareCard } from './build-cards';
-import { BUILD_OPEN_TO_EVERYONE } from '@/lib/build/built-parts';
 import {
   BUILD_HOME_CARD_URL,
   type BuildSharedRow,
@@ -25,7 +24,7 @@ import { isGithubLogin } from '@/utils/profile-refresh';
  * The answers of Build's pictures. Each is drawn under exactly its current query (`?v=<version>`, and `?by=<login>&v=`
  * for a person's build): any other query is a 308 to its current address, so no query makes it draw again. A person's
  * build is drawn only from the person's public Skills page, the rows everyone reads; without a Built row for the
- * project there, the address goes to the project's picture. The pages' gate closes them while Build is closed.
+ * project there, the address goes to the project's picture.
  */
 
 /** What draws the PNG: the site's link-preview cards, or a spec's stand-in. */
@@ -35,19 +34,14 @@ type Draw = typeof drawSocialCard;
 const NOT_KEPT = { 'Cache-Control': 'private, no-store' } as const;
 
 /**
- * How a picture is kept. Once Build is open to everyone, as Learn's pictures are: five minutes in a browser and ten in
- * a shared cache, and its address changes with what it draws. Until then by no one, as the gate's 404 is, so a shared
- * cache never hands it to a visitor the gate closes it to.
+ * How a picture is kept, as Learn's pictures are: five minutes in a browser and ten in a shared cache. Its address
+ * changes with what it draws.
  */
-export function buildCardHeadersOf(openToEveryone = BUILD_OPEN_TO_EVERYONE): Record<string, string> {
-  return openToEveryone
-    ? {
-        'Content-Type': 'image/png',
-        'Cache-Control': 'public, max-age=300',
-        'Cloudflare-CDN-Cache-Control': 'max-age=600',
-      }
-    : { 'Content-Type': 'image/png', ...NOT_KEPT };
-}
+const CARD_HEADERS = {
+  'Content-Type': 'image/png',
+  'Cache-Control': 'public, max-age=300',
+  'Cloudflare-CDN-Cache-Control': 'max-age=600',
+} as const;
 
 const plain = (status: number, text: string, headers: Record<string, string> = {}) =>
   new Response(`${text}\n`, {
@@ -72,7 +66,7 @@ async function versionedCard(
 ): Promise<Response> {
   if (search !== query) return moved(`${path}${query}`);
   try {
-    return new Response(await draw(), { headers: buildCardHeadersOf() });
+    return new Response(await draw(), { headers: CARD_HEADERS });
   } catch (error) {
     console.error('Error drawing a Build card:', error);
     return unavailable();

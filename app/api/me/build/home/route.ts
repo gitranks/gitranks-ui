@@ -5,7 +5,7 @@ import { loadBuildHome } from '@/lib/build/home.data';
 
 /**
  * Build's home for the signed-in person, read in the browser: `{ home }`, the builds in progress, the tests that wait
- * and the projects to build next. Null signed out (without asking the API), when Build is not open to them, and on any
+ * and the projects to build next. Null signed out (without asking the API), and on any
  * failure. Never kept.
  */
 export const GET = auth(async function GET(req: AuthRequest) {

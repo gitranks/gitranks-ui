@@ -5,7 +5,7 @@ import { loadBuildMine } from '@/lib/build/mine.data';
 
 /**
  * My builds for the signed-in person, read in the browser: `{ mine }`, the tests that wait, the builds in progress and
- * the built ones. Null signed out (without asking the API), when Build is not open to them, and on any failure. Never
+ * the built ones. Null signed out (without asking the API), and on any failure. Never
  * kept.
  */
 export const GET = auth(async function GET(req: AuthRequest) {

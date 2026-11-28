@@ -1,4 +1,3 @@
-import { BUILD_EMAILS_BUILT, BUILD_SKILLS_BUILT } from './built-parts';
 import type {
   BuildMine,
   BuildProjectMine,
@@ -183,30 +182,19 @@ const moreOf = (more: number) => (more === 1 ? 'one more right answer' : `${coun
 
 const capital = (text: string) => text.charAt(0).toUpperCase() + text.slice(1);
 
-/**
- * The parts of Build that later work brings, which a sentence may speak of only once they are there: the gold test's
- * email and the Skills page's Built section.
- */
-export type BuiltParts = { emails: boolean; skills: boolean };
-
-const BUILT: BuiltParts = { emails: BUILD_EMAILS_BUILT, skills: BUILD_SKILLS_BUILT };
-
 /** The sentence under the score. */
 export function scoreTextOf(
   test: Pick<BuildTest, 'kind' | 'need'>,
   result: BuildTestResult,
   project: { name: string },
-  built: BuiltParts = BUILT,
 ): string {
   const more = Math.max(1, test.need - result.right);
   if (test.kind === 'gold') {
     if (!result.passed) return `The project stays Built. The gold mark only needs ${moreOf(more)}.`;
-    const skills = built.skills ? ` Your Skills page now shows “${project.name}” as repeated.` : '';
-    return `A week after you built it, you still know it.${skills}`;
+    return `A week after you built it, you still know it. Your Skills page now shows “${project.name}” as repeated.`;
   }
   if (result.passed) {
-    const skills = built.skills ? ` “${project.name}” now shows on your Skills page.` : '';
-    return `You needed ${test.need}.${skills}`;
+    return `You needed ${test.need}. “${project.name}” now shows on your Skills page.`;
   }
   return `${capital(moreOf(more))} ${more === 1 ? 'makes' : 'make'} “${project.name}” Built. Nothing is lost: your steps stay done.`;
 }
@@ -252,9 +240,8 @@ export function testBoxOf(
   build: BuildMine | null,
   now: Date,
   timeZone?: string,
-  built: BuiltParts = BUILT,
 ): BuildTestBox {
-  const email = built.emails ? ' We will email you that day.' : '';
+  const email = ' We will email you that day.';
   const everyStep: BuildTestPill[] = build?.answeredEveryStep ? ['every-step'] : [];
   const wrong = result.items.length - result.right;
   if (result.passed && test.kind === 'gold') {
@@ -342,7 +329,6 @@ export function closedWordsOf(
   test: Pick<BuildTest, 'kind' | 'nextTryAt'>,
   build: BuildMine | null,
   timeZone?: string,
-  built: BuiltParts = BUILT,
 ): { title: string; text: string } {
   if (test.kind === 'end') {
     if (build?.state.kind === 'in_progress') {
@@ -374,7 +360,7 @@ export function closedWordsOf(
   if (opens) {
     return {
       title: `The gold test opens on ${opens}`,
-      text: `It opens a week after you built the project.${built.emails ? ' We will email you that day.' : ''}`,
+      text: 'It opens a week after you built the project. We will email you that day.',
     };
   }
   return { title: 'The gold test is not open yet', text: 'It opens a week after you built the project.' };

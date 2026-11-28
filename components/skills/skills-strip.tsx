@@ -19,7 +19,6 @@ export function SkillsStrip({
   onHide,
   onShow,
   pending = false,
-  build = false,
 }: {
   mine: Pick<SkillsMine, 'state' | 'usesLearn'>;
   /** The page's address, which "Copy link" copies. */
@@ -28,10 +27,8 @@ export function SkillsStrip({
   onShow?: () => void;
   /** A press is on its way: the buttons wait. */
   pending?: boolean;
-  /** Build is open to the owner: an empty page's line names building a project too. */
-  build?: boolean;
 }) {
-  const strip = stripOf(mine, build);
+  const strip = stripOf(mine);
   const Icon = mine.state === 'PUBLIC' ? Eye : EyeOff;
   return (
     <div

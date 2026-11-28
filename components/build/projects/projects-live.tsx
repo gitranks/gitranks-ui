@@ -7,7 +7,7 @@ import { BUILD_PROJECTS_MINE_PATH } from '@/lib/build/paths';
 import type { BuildMine, BuildProjectCard } from '@/lib/build/types';
 import { hasSessionHint } from '@/lib/session-hint';
 
-/** The person's builds of every project they touched; null signed out, Build not open to them, or on any failure. */
+/** The person's builds of every project they touched; null signed out, or on any failure. */
 export async function readProjectsSide(): Promise<BuildMine[] | null> {
   try {
     const res = await fetch(BUILD_PROJECTS_MINE_PATH, { cache: 'no-store' });

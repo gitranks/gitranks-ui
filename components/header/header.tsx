@@ -17,7 +17,7 @@ type HeaderProps = {
    * workspace's pages under `/my`.
    */
   section?: MenuSection;
-  /** Whether Build is open to the viewer, for the design boards; left out, the browser reads it. */
+  /** Whether the viewer has a build (Grow's "New"), for the design boards; left out, the browser reads it. */
   build?: BuildViewer;
   /** Whether Interviews is open to the viewer, for the design boards; left out, the browser reads it. */
   interviews?: InterviewsViewer;

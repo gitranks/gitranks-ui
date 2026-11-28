@@ -3,10 +3,7 @@ import { withBuildPreview } from './project-seo';
 import { BUILD_HOME_CARD_URL, HOME_CARD } from './share-card';
 import { pageMetadata } from '@/lib/seo/page-metadata';
 
-/*
- * What Build's public pages tell search engines and link previews. While Build is open only to some people, the gate
- * also marks every Build page not to be indexed.
- */
+/* What Build's public pages tell search engines and link previews. */
 
 const LANDING_TEXT =
   'Pick a project. Your agent brings in the code one small step at a time, you try each step, and at the end you understand what you built.';

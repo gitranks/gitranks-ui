@@ -125,8 +125,8 @@ describe('My builds in the browser', () => {
       'In progress',
       'Built',
     ]);
-    // Skills does not list built projects yet, so the page does not say it does.
-    expect(host.querySelector('[data-build-mine-skills]')).toBeNull();
+    // Built projects show on the person's Skills page too, and the page says so.
+    expect(host.querySelector('[data-build-mine-skills]')).not.toBeNull();
     // The browser's zone was saved before the reads: no note sends it again.
     expect(host.querySelector('[data-time-zone-note]')).toBeNull();
   });

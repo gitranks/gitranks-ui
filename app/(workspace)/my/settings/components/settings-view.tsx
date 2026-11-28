@@ -21,7 +21,6 @@ import { DeleteDataSection } from '@/components/workspace/settings/delete-data-s
 import { EmailRows } from '@/components/workspace/settings/email-rows';
 import { SettingsAnchors } from '@/components/workspace/settings/settings-anchors';
 import { SettingsGroup, SettingsList, SettingsRow } from '@/components/workspace/settings-rows';
-import { BUILD_EMAILS_BUILT } from '@/lib/build/built-parts';
 import { FROM_BUILD } from '@/lib/build/paths';
 import { loadBuildSettings } from '@/lib/build/settings.data';
 import type { BuildSettings } from '@/lib/build/types';
@@ -94,11 +93,10 @@ async function loadPrivacyGroup(): Promise<ReactNode> {
 }
 
 /**
- * Build's row, "Build reminders": once Build's emails are built, for a person with a build (the API answers none to
- * anyone else, and to a person Build is not open to). None signed out, and on any failure.
+ * Build's row, "Build reminders", for a person with a build (the API answers none to anyone else). None signed out,
+ * and on any failure.
  */
 async function loadBuildRow(): Promise<BuildSettings | null> {
-  if (!BUILD_EMAILS_BUILT) return null;
   const githubLogin = await viewerLogin();
   return githubLogin ? loadBuildSettings(githubLogin) : null;
 }

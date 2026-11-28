@@ -7,8 +7,7 @@ export const BUILD_PLACEHOLDER_METADATA: Metadata = {
 };
 
 /**
- * What a Build address shows until its page is built: the page's name in Build's reading column. Only the people
- * Build is open to reach it.
+ * What a Build address shows until its page is built: the page's name in Build's reading column.
  */
 export function BuildPlaceholder({ title }: { title: string }) {
   return (

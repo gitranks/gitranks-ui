@@ -34,7 +34,7 @@ export async function loadBuildProject(slug: string): Promise<BuildProjectPage |
   return project ?? null;
 }
 
-/** The signed-in person's side of a project: null when Build is not open to them, and on any failure. Never kept. */
+/** The signed-in person's side of a project: null on any failure. Never kept. */
 export async function loadBuildProjectMine(slug: string, githubLogin: string): Promise<BuildProjectMine | null> {
   if (!isBuildProjectSlug(slug)) return null;
   try {

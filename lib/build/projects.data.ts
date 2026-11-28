@@ -33,7 +33,7 @@ export async function loadBuildProjects(): Promise<BuildProjectCard[]> {
   return [];
 }
 
-/** The signed-in person's builds of every project they touched: null when Build is not open to them, or on failure. */
+/** The signed-in person's builds of every project they touched: null on any failure. */
 export async function loadBuildProjectsMine(githubLogin: string): Promise<BuildMine[] | null> {
   try {
     const { buildProjectsMine } = await graphqlDirect(BuildProjectsMineDocument, {}, { source: 'ssr', githubLogin });

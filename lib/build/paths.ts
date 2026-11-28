@@ -53,8 +53,6 @@ export const buildCoursePath = (course: string) => `/learn/courses/${encodeURICo
  * the session's own person and is never kept.
  */
 
-/** Whether Build is open to the signed-in person. */
-export const BUILD_OPEN_MINE_PATH = '/api/me/build/open';
 /** Build's bar. */
 export const BUILD_BAR_MINE_PATH = '/api/me/build/bar';
 /** Build's home: the builds in progress, the tests that wait, the projects to build next. */

@@ -130,8 +130,7 @@ export type SkillsPage = {
   numbers: SkillsNumbers;
   fixes: SkillsFixes;
   /**
-   * The projects built, the one built last first. Left out when there is none (always, while Build is not open to
-   * everyone), so a public page's data is today's.
+   * The projects built, the one built last first. Left out when there is none.
    */
   built?: SkillsBuilt[];
   courses: SkillsCourse[];
@@ -153,7 +152,7 @@ export type SkillsMine = {
   page: SkillsPage | null;
   usesContribute: boolean;
   usesLearn: boolean;
-  /** They have a build; false while Build is not open to them. */
+  /** They have a build. */
   usesBuild: boolean;
   /** The tab's "New" mark, until the first visit. */
   tabNew: boolean;

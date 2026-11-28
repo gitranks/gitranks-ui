@@ -52,7 +52,7 @@ export async function loadBuildAddress(project: string, step: string | null = nu
   }
 }
 
-/** Where a step stands for each of the person's builds of its project: null when Build is not open, or on failure. */
+/** Where a step stands for each of the person's builds of its project: null on any failure. */
 export async function loadBuildStepMine(
   project: string,
   step: string,

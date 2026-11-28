@@ -6,7 +6,7 @@ import { loadBuildStepMine } from '@/lib/build/step.data';
 /**
  * The signed-in person's side of a step, read in the browser after the step's page is up: `{ mine }`, for each of
  * their builds of the project whether the step is done, current or to come. Null signed out (without asking the API),
- * when Build is not open to them, and on any failure. Never kept.
+ * and on any failure. Never kept.
  */
 export const GET = auth(async function GET(req: AuthRequest, { params }) {
   const { project, step } = (await params) as { project: string; step: string };

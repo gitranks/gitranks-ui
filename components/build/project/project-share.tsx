@@ -158,45 +158,35 @@ export function GithubPanel({
   );
 }
 
-/** The two buttons, each opening its panel. Share waits for Build to be open to everyone (`share`). */
-export function ProjectShareActions({
-  project,
-  login,
-  share = true,
-}: {
-  project: ShareProject;
-  login: string;
-  share?: boolean;
-}) {
+/** The two buttons, each opening its panel. */
+export function ProjectShareActions({ project, login }: { project: ShareProject; login: string }) {
   const [copied, setCopied] = useState(false);
   const titleId = useId();
   const url = buildShareUrlOf(project.slug, login);
   return (
     <div data-project-share-actions className="flex flex-wrap items-center gap-3">
-      {share && (
-        <Popover onOpenChange={(open) => open || setCopied(false)}>
-          <PopoverTrigger asChild>
-            <Button variant="outline" className="font-semibold max-sm:min-h-11">
-              <Share aria-hidden="true" />
-              Share
-            </Button>
-          </PopoverTrigger>
-          <PopoverContent
-            aria-labelledby={titleId}
-            align="start"
-            sideOffset={8}
-            className="w-[min(392px,calc(100vw-2rem))] rounded-xl shadow-lg"
-          >
-            <SharePanel
-              url={url}
-              titleId={titleId}
-              copied={copied}
-              onCopy={() => setCopied(true)}
-              preview={<SharePreview project={project} login={login} />}
-            />
-          </PopoverContent>
-        </Popover>
-      )}
+      <Popover onOpenChange={(open) => open || setCopied(false)}>
+        <PopoverTrigger asChild>
+          <Button variant="outline" className="font-semibold max-sm:min-h-11">
+            <Share aria-hidden="true" />
+            Share
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent
+          aria-labelledby={titleId}
+          align="start"
+          sideOffset={8}
+          className="w-[min(392px,calc(100vw-2rem))] rounded-xl shadow-lg"
+        >
+          <SharePanel
+            url={url}
+            titleId={titleId}
+            copied={copied}
+            onCopy={() => setCopied(true)}
+            preview={<SharePreview project={project} login={login} />}
+          />
+        </PopoverContent>
+      </Popover>
       <Dialog>
         <DialogTrigger asChild>
           <Button variant="outline" className="font-semibold max-sm:min-h-11">

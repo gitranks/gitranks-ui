@@ -44,19 +44,10 @@ afterEach(() => {
   host.remove();
 });
 
-const draw = (
-  list: List,
-  { asking = null as string | null, login = 'octocat' as string | null, skills = true, emails = false } = {},
-) =>
+const draw = (list: List, { asking = null as string | null, login = 'octocat' as string | null } = {}) =>
   act(async () => {
     root.render(
-      <MineBody
-        view={mineViewOf(list, fixtures.MINE_NOW, 'UTC', { emails })}
-        login={login}
-        asking={asking}
-        skills={skills}
-        onRemove={onRemove}
-      />,
+      <MineBody view={mineViewOf(list, fixtures.MINE_NOW, 'UTC')} login={login} asking={asking} onRemove={onRemove} />,
     );
   });
 
@@ -195,20 +186,13 @@ describe('My builds, from its fixtures', () => {
     expect(document.activeElement?.textContent).toBe('Build a coding agent');
   });
 
-  it('leaves out the line on Skills until Skills lists built projects', async () => {
-    await draw(fixtures.mineBoardOne, { skills: false });
-    expect(host.querySelector('[data-build-mine-skills]')).toBeNull();
-    await draw(fixtures.mineBoardGoldOpensOn, { emails: true });
-    expect(text(host.querySelector('[data-build-gold]'))).toBe(
-      'The gold test opens on 3 Dec. We will email you that day.',
-    );
-  });
-
   it('says when the gold test of a built project opens, with the optional parts built', async () => {
     await draw(fixtures.mineBoardGoldOpensOn);
     const [row] = rows('built');
     expect(text(row)).toContain('TypeScript · built 26 Nov · 9 of 10 in the test · 2 of 5 optional parts');
-    expect(text(row.querySelector('[data-build-gold]'))).toBe('The gold test opens on 3 Dec.');
+    expect(text(row.querySelector('[data-build-gold]'))).toBe(
+      'The gold test opens on 3 Dec. We will email you that day.',
+    );
     expect(buttonsOf(row)).not.toContain('Take the gold test');
   });
 

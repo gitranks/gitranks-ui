@@ -15,7 +15,7 @@ import type { BuildMineList, BuildTest } from '@/lib/build/types';
 import { readBuildZone, zoneSent } from '@/lib/build/zone-live';
 import { hasSessionHint } from '@/lib/session-hint';
 
-/** The person's builds from their route; null on any failure (Build not open to them, or an API that does not know it). */
+/** The person's builds from their route; null on any failure (signed out, or an API that does not know it). */
 export async function readBuildMine(): Promise<BuildMineList | null> {
   try {
     const res = await fetch(BUILD_MINE_MINE_PATH, { cache: 'no-store' });

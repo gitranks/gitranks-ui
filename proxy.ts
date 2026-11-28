@@ -3,8 +3,6 @@ import NextAuth from 'next-auth';
 
 import authConfig from './auth.config';
 import { isV2BuilderRequest, mapV2BuilderQuery } from './badge/v3/v2-mapping';
-import { buildGateOf } from './lib/build/build-gate';
-import { isBuildPath } from './lib/build/paths';
 import { prefersMarkdown } from './lib/contribute/accept-markdown';
 import { contributeLedgerOpen } from './lib/contribute/ledger-gate';
 import { prTimelineGateOf } from './lib/contribute/pr-timeline-gate';
@@ -78,8 +76,6 @@ const RANK_CARD_PATH = '/api/me/rank-card';
 /** Matches no route, so a rewrite here renders `app/not-found.tsx` with a 404 status. */
 const NOT_FOUND_PATH = '/_404';
 
-/** What a Build page tells search engines while Build is open only to some people. */
-export const BUILD_NOINDEX = 'noindex, nofollow';
 /** What an Interviews page tells search engines while Interviews is open only to some people. */
 export const INTERVIEWS_NOINDEX = 'noindex, nofollow';
 
@@ -183,16 +179,10 @@ export default async function proxy(request: NextRequest, event: NextFetchEvent)
     return NextResponse.rewrite(new URL(NOT_FOUND_PATH, request.url));
   }
 
-  // Build is open only to the people the API names, until it is open to everyone: anyone else gets a real 404 on every
-  // Build address, never kept by a shared cache (it would be served to someone Build is open to). The gate fails
-  // closed: an answer that is slow, missing or an error is a no. Only Build's addresses ask. Open to the signed-in
-  // person alone, the page is not indexed. Asked before Auth.js, like the 404s above.
-  const buildGate = isBuildPath(request.nextUrl.pathname) ? await buildGateOf(request, Date.now()) : null;
-  if (buildGate === 'closed') {
-    return noStore(NextResponse.rewrite(new URL(NOT_FOUND_PATH, request.url)));
-  }
-  // Interviews the same way, with its own list: every Interviews address (its logos and pictures included) is a real
-  // 404, never kept by a shared cache, to anyone it is not open to. It fails closed, and only its addresses ask.
+  // Interviews is open only to the people the API names, until it is open to everyone: every Interviews address (its
+  // logos and pictures included) is a real 404, never kept by a shared cache, to anyone it is not open to. It fails
+  // closed, and only its addresses ask. Open to the signed-in person alone, the page is not indexed. Asked before
+  // Auth.js, like the 404s above.
   const interviewsGate = isInterviewsPath(request.nextUrl.pathname)
     ? await interviewsGateOf(request, Date.now())
     : null;
@@ -516,7 +506,6 @@ export default async function proxy(request: NextRequest, event: NextFetchEvent)
       : null;
   const served = <T>(response: T): T => {
     if (twinLink && response instanceof Response) response.headers.set('Link', twinLink);
-    if (buildGate === 'person' && response instanceof Response) response.headers.set('X-Robots-Tag', BUILD_NOINDEX);
     if (interviewsGate === 'person' && response instanceof Response) {
       response.headers.set('X-Robots-Tag', INTERVIEWS_NOINDEX);
     }

@@ -51,8 +51,6 @@ import type { BuildTestResult } from './types';
 import { plainCodeOf } from '@/lib/workspace/code-tokens';
 
 const NOW = new Date('2026-11-26T12:00:00.000Z');
-/** The parts later work brings (the gold test's email, Skills' Built section), once they are there. */
-const ON = { emails: true, skills: true };
 const PROJECT = { name: 'Build an MCP server' };
 const resultOf = (test: { last: BuildTestResult | null }) => test.last as BuildTestResult;
 
@@ -127,13 +125,13 @@ describe('the score', () => {
   });
 
   it('says the sentence under it', () => {
-    expect(scoreTextOf(endTestPassed, passedResult, PROJECT, ON)).toBe(
+    expect(scoreTextOf(endTestPassed, passedResult, PROJECT)).toBe(
       'You needed 7. “Build an MCP server” now shows on your Skills page.',
     );
     expect(scoreTextOf(endTestFailedAgain, failedResult, PROJECT)).toBe(
       'One more right answer makes “Build an MCP server” Built. Nothing is lost: your steps stay done.',
     );
-    expect(scoreTextOf(goldTestPassed, resultOf(goldTestPassed), PROJECT, ON)).toBe(
+    expect(scoreTextOf(goldTestPassed, resultOf(goldTestPassed), PROJECT)).toBe(
       'A week after you built it, you still know it. Your Skills page now shows “Build an MCP server” as repeated.',
     );
     expect(scoreTextOf(goldTestFailed, resultOf(goldTestFailed), PROJECT)).toBe(
@@ -141,13 +139,6 @@ describe('the score', () => {
     );
     expect(scoreTextOf(endTestFailedAgain, testResultOf('r', [1, 2, 3, 4, 5]), PROJECT)).toMatch(
       /^Two more right answers make/,
-    );
-  });
-
-  it('says nothing of the Skills page until its Built section is there', () => {
-    expect(scoreTextOf(endTestPassed, passedResult, PROJECT)).toBe('You needed 7.');
-    expect(scoreTextOf(goldTestPassed, resultOf(goldTestPassed), PROJECT)).toBe(
-      'A week after you built it, you still know it.',
     );
   });
 });
@@ -212,7 +203,7 @@ describe('the answers', () => {
 
 describe('what comes now', () => {
   it('after a pass: open the project and share, and when the gold test opens', () => {
-    expect(testBoxOf(endTestPassed, passedResult, buildBuilt, NOW, 'UTC', ON)).toEqual({
+    expect(testBoxOf(endTestPassed, passedResult, buildBuilt, NOW, 'UTC')).toEqual({
       title: 'What comes now',
       aside: null,
       pills: ['every-step'],
@@ -220,9 +211,6 @@ describe('what comes now', () => {
       main: { kind: 'project' },
       share: true,
     });
-    expect(testBoxOf(endTestPassed, passedResult, buildBuilt, NOW, 'UTC').text).toBe(
-      'The gold test opens on 3 Dec, a week from today: 10 questions, and 8 right earns the gold mark.',
-    );
     const later = testBoxOf(endTestPassed, passedResult, buildBuilt, new Date('2026-11-29T12:00:00Z'), 'UTC');
     expect(later.text).toMatch(/^The gold test opens on 3 Dec: /);
   });
@@ -318,12 +306,10 @@ describe('a test that cannot start', () => {
   });
 
   it('the gold test before its day: the day it opens', () => {
-    expect(closedWordsOf(goldTestClosed, buildBuilt, 'UTC', ON)).toEqual({
+    expect(closedWordsOf(goldTestClosed, buildBuilt, 'UTC')).toEqual({
       title: 'The gold test opens on 3 Dec',
       text: 'It opens a week after you built the project. We will email you that day.',
     });
-    // Until the email is there, the page does not promise it.
-    expect(closedWordsOf(goldTestClosed, buildBuilt).text).toBe('It opens a week after you built the project.');
     expect(closedWordsOf(goldTestClosed, testBuildOf(mineBuilt, goldTestClosed)).title).toBe(
       'The gold test opens on 3 Dec',
     );

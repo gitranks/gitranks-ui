@@ -6,7 +6,7 @@ import { loadBuildStart } from '@/lib/build/start.data';
 /**
  * The start flow's state for the signed-in person, read again while the page waits: `{ start }`, whether an agent of
  * theirs connected and their build of the project (`?project=`) once started. Null signed out (without asking the
- * API), when Build is not open to them, and on any failure. Never kept.
+ * API), and on any failure. Never kept.
  */
 export const GET = auth(async function GET(req: AuthRequest) {
   const viewer = buildViewerOf(req);

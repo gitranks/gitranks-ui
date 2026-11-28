@@ -20,15 +20,6 @@ vi.mock('next/link', () => ({
   ),
 }));
 
-// Whether Build's emails go yet: the switch the reminder line waits for, flipped here to draw both cases.
-const built = vi.hoisted(() => ({ emails: false }));
-vi.mock('@/lib/build/built-parts', async (original) => ({
-  ...(await original<typeof import('@/lib/build/built-parts')>()),
-  get BUILD_EMAILS_BUILT() {
-    return built.emails;
-  },
-}));
-
 vi.mock('next/navigation', () => ({ useRouter: () => ({ push: vi.fn(), replace: vi.fn(), refresh: vi.fn() }) }));
 vi.mock('@/lib/workspace/actions', () => ({
   createMcpToken: vi.fn(),
@@ -176,26 +167,19 @@ describe("the start flow's screens", () => {
     expect(project.querySelector('a')?.textContent).toBe('Back to Build an MCP server');
     expect(project.querySelector('a')?.getAttribute('href')).toBe('/build/mcp-server');
     expect(project.textContent).toContain('This page moves on by itself when your build starts');
-    // Until Build's emails go, the page says nothing of them.
-    expect(project.querySelector('[data-build-start-reminders]')).toBeNull();
   });
 
-  it("says once Build's emails go, under the sentence to say, how often they come and where to turn them off", () => {
-    built.emails = true;
-    try {
-      const host = screen({
-        stage: 'project',
-        agent: 'Claude Code',
-        project: { kind: 'say', project: startProject, from: 'address' },
-      });
-      const line = host.querySelector('[data-build-start-reminders]');
-      expect(line?.textContent).toBe(
-        'We email you twice at most for a project: when its gold test opens, and once if your build stands still for 3 days. Turn it off in Settings',
-      );
-      expect(line?.querySelector('a')?.getAttribute('href')).toBe('/my/settings?from=build');
-    } finally {
-      built.emails = false;
-    }
+  it("says under the sentence to say how often Build's emails come and where to turn them off", () => {
+    const host = screen({
+      stage: 'project',
+      agent: 'Claude Code',
+      project: { kind: 'say', project: startProject, from: 'address' },
+    });
+    const line = host.querySelector('[data-build-start-reminders]');
+    expect(line?.textContent).toBe(
+      'We email you twice at most for a project: when its gold test opens, and once if your build stands still for 3 days. Turn it off in Settings',
+    );
+    expect(line?.querySelector('a')?.getAttribute('href')).toBe('/my/settings?from=build');
   });
 
   it('connected, with no project: the projects as rows to pick from', () => {
@@ -224,7 +208,8 @@ describe("the start flow's screens", () => {
     const project = host.querySelector('[data-build-start-project="say"]') as Element;
     expect(project.querySelector('pre')?.textContent).toBe('Teach me how to build a coding agent with GitRanks');
     expect(textOf(project, 'button')).toEqual(['Copy the sentence', 'Pick another project']);
-    expect(project.querySelector('a')).toBeNull();
+    // The one link is to Settings, where Build's emails turn off: no way back to a project's page.
+    expect([...project.querySelectorAll('a')].map((a) => a.getAttribute('href'))).toEqual(['/my/settings?from=build']);
   });
 
   it('an agent connected before: step 1 is done without naming an agent it cannot know, step 2 is open', () => {

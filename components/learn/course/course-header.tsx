@@ -211,7 +211,7 @@ export function CourseHeader({
       </div>
       {/* The companies whose interview plans use the course; a company's own course names its company above. */}
       {interviews && !own ? <CoursePlansLine companies={interviews.companies} /> : null}
-      {/* Build's door, under the row of facts: only for a person Build is open to, once their browser knows it. */}
+      {/* Build's door, under the row of facts: only for a signed-in person, once their browser read it. */}
       <CourseBuildDoor course={course.slug} />
     </header>
   );

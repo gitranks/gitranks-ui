@@ -1,6 +1,5 @@
 import type { Route } from 'next';
 
-import { BUILD_EMAILS_BUILT } from './built-parts';
 import { buildProjectPath, buildTestPath } from './paths';
 import { FAILED_TEST_ACTION, goingWordsOf, goOnLabelOf, rightWordsOf, type TestStanding } from './test';
 import {
@@ -158,15 +157,13 @@ export type GoldLineContext = {
   waits: boolean;
   /** The day the gold test first opens: a week after the person's day of Built. */
   firstDay: string | null;
-  /** Whether the email on that morning is sent. */
-  emails?: boolean;
 };
 
 /**
  * The line on the gold test of a built project; null once it is earned. The email goes once, on the day the test first
  * opens: a test that opens again after a failed try promises none.
  */
-export function goldLineOf(gold: BuildGold, { waits, firstDay, emails = BUILD_EMAILS_BUILT }: GoldLineContext) {
+export function goldLineOf(gold: BuildGold, { waits, firstDay }: GoldLineContext) {
   if (gold.kind === 'earned') return null;
   if (gold.kind === 'open') {
     return waits ? 'The gold test is open. It is at the top of this page.' : 'The gold test is open.';
@@ -175,7 +172,7 @@ export function goldLineOf(gold: BuildGold, { waits, firstDay, emails = BUILD_EM
   if (!day) return null;
   // A day past the first one is after a failed try: the test opens again, as the project's box says.
   if (firstDay !== null && gold.date > firstDay) return `The gold test opens again on ${day}.`;
-  const email = emails && firstDay !== null && gold.date === firstDay;
+  const email = firstDay !== null && gold.date === firstDay;
   return `The gold test opens on ${day}.${email ? ' We will email you that day.' : ''}`;
 }
 
@@ -237,10 +234,8 @@ export function mineViewOf(
   now: Date,
   timeZone?: string,
   {
-    emails = BUILD_EMAILS_BUILT,
     standings = {},
   }: {
-    emails?: boolean;
     /** Where each waiting test stands, by build, as read: a run in progress or a failed try. */
     standings?: Record<string, TestStanding | null>;
   } = {},
@@ -334,7 +329,6 @@ export function mineViewOf(
         gold: goldLineOf(gold, {
           waits: waiting.has(build.build),
           firstDay: dayAfter(dayKeyOf(builtAt, timeZone), 7),
-          emails,
         }),
         answersHref: buildTestPath(build.project.slug, 'end', build.language),
       },

@@ -37,7 +37,7 @@ describe('SkillsStrip', () => {
 
   it('says until when an empty page is only theirs', () => {
     expect(draw(<SkillsStrip mine={skillsMine.new} href={HREF} />).text).toBe(
-      'Only you can see this page, until you send a pull request or learn a lesson.',
+      'Only you can see this page, until you send a pull request, build a project or learn a lesson.',
     );
   });
 
@@ -49,19 +49,9 @@ describe('SkillsStrip', () => {
 });
 
 describe('SkillsStart', () => {
-  it('draws the page for someone who uses neither: the box about the list, then both promotions', () => {
-    const { root, text, hrefs } = draw(<SkillsStart mine={skillsMine.new} />);
-    expect(text).toContain('This page shows what you fix and learn with GitRanks');
-    expect(text).toContain('We find the issues that really need a fix');
-    expect(text).toContain('2.3 million');
-    expect(text).toContain('About 1 issue in 1,000 makes the list.');
-    expect(root.querySelectorAll('[data-mode="promo"]')).toHaveLength(2);
-    expect(hrefs).toEqual(['/contribute/about', '/learn']);
-  });
-
   it('gives each product used its first step', () => {
     const both = draw(<SkillsStart mine={skillsMine.nothingYetBoth} />);
-    expect(both.text).toContain('There are two ways to fill it, and you can use both.');
+    expect(both.text).toContain('There are three ways to fill it, and you can use them all.');
     expect(both.text).toContain('No pull request sent yet. The first one you send shows here.');
     expect(both.text).toContain('No lesson learned yet. The first one you learn shows here.');
     expect(both.root.querySelector('[data-skills-numbers]')).toBeNull();
@@ -73,8 +63,8 @@ describe('SkillsStart', () => {
     expect(renderToStaticMarkup(<SkillsStart mine={skillsMine.publicLearner} />)).toBe('');
   });
 
-  it('draws someone new three boxes while Build is open to them: Learn, Build, Contribute', () => {
-    const { root, text, hrefs } = draw(<SkillsStart mine={skillsMine.new} build />);
+  it('draws someone new three boxes: Learn, Build, Contribute', () => {
+    const { root, text, hrefs } = draw(<SkillsStart mine={skillsMine.new} />);
     expect(text).toContain('This page shows what you fix, build and learn with GitRanks');
     expect(text).not.toContain('We find the issues that really need a fix');
     expect([...root.querySelectorAll<HTMLElement>('[data-product-box]')].map((box) => box.dataset.productBox)).toEqual([

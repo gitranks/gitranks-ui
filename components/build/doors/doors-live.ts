@@ -2,14 +2,14 @@
 
 import { useEffect, useState } from 'react';
 
-import { buildOpenForDocument, readBuildKeyWithin } from '@/components/build/build-viewer';
+import { readBuildKeyWithin } from '@/components/build/build-viewer';
 import { buildDoorsMinePath } from '@/lib/build/paths';
 import type { BuildDoors } from '@/lib/build/types';
 import { hasSessionHint } from '@/lib/session-hint';
 
 /*
- * The doors into Build are drawn only for a person Build is open to, once their browser knows it: a cached page of
- * Learn's or Contribute's is the same for everyone, so the server draws today's page and no door. The doors of one
+ * The doors into Build are drawn only for a signed-in person, once their browser read them: a cached page of Learn's or
+ * Contribute's is the same for everyone, so the server draws the page and no door. The doors of one
  * course are read once for the document and shared by every part that draws one (the course's line and its row in
  * "Go further").
  */
@@ -27,17 +27,14 @@ function doorsOf(value: unknown): BuildDoors | null {
 }
 
 /**
- * The doors of a course, once for the document: none when Build is not open to the person, or the read failed. A
- * browser with no session asks nothing, even once Build is open to everyone: the route answers none signed out.
+ * The doors of a course, once for the document: none when the read failed. A browser with no session asks nothing:
+ * the route answers none signed out.
  */
 export function readBuildDoors(of: BuildDoorsOf): Promise<BuildDoors | null> {
   const path = buildDoorsMinePath(of);
   let read = reads.get(path);
   if (!read) {
-    read = (async () =>
-      (await buildOpenForDocument()) && hasSessionHint(document.cookie)
-        ? doorsOf(await readBuildKeyWithin(path, 'doors'))
-        : null)();
+    read = (async () => (hasSessionHint(document.cookie) ? doorsOf(await readBuildKeyWithin(path, 'doors')) : null))();
     reads.set(path, read);
   }
   return read;

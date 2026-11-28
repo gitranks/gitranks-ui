@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 
-import { BUILD_READ_WAIT_MS, buildOpenForDocument, readBuildKey, SERVED_BUILD_VIEWER } from './build-viewer';
+import { BUILD_READ_WAIT_MS, readBuildKey } from './build-viewer';
 import type { BuildCardSide } from '@/lib/build/home-card';
 import { BUILD_HOME_MINE_PATH, BUILD_PROJECTS_MINE_PATH } from '@/lib/build/paths';
 import type { BuildHome, BuildMine } from '@/lib/build/types';
@@ -62,25 +62,21 @@ export async function readBuildCardSide(waitMs = BUILD_CARD_WAIT_MS): Promise<Bu
 
 /**
  * Build's card on the home page. A browser with no session asks nothing and settles at once (the card promotes). For a
- * signed-in person, the card is read as soon as Build is known to be open to them (alongside the header's bar, not
- * after it), within the wait, then settled in one change; a person Build is not open to asks nothing more. `onOpen`
- * runs once Build is known to be open, so the block can fetch its code meanwhile. Drawn again later in the same
- * document (back on the home page), the block starts from the last read and its words change in place once read again.
+ * signed-in person, the card is read once the page is up (alongside the header's bar, not after it), within the wait,
+ * then settled in one change. Drawn again later in the same document (back on the home page), the block starts from
+ * the last read and its words change in place once read again.
  */
-export function useBuildCardSide(onOpen?: () => void): BuildCardRead {
+export function useBuildCardSide(): BuildCardRead {
   const [read, setRead] = useState<BuildCardRead>(() => lastRead ?? NOT_READ);
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: read once each time the block is drawn.
   useEffect(() => {
     if (!hasSessionHint(document.cookie)) {
-      // Nothing to read: the card promotes, once Build is open to everyone (until then the block is today's).
-      if (SERVED_BUILD_VIEWER.open) setRead(NOTHING_TO_READ);
+      // Nothing to read: the card promotes.
+      setRead(NOTHING_TO_READ);
       return;
     }
     let live = true;
     void (async () => {
-      if (!(await buildOpenForDocument())) return;
-      onOpen?.();
       const settled: BuildCardRead = { settled: true, ...(await readBuildCardSide()) };
       lastRead = settled;
       if (live) setRead(settled);

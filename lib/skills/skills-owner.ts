@@ -24,11 +24,8 @@ export type StripWords = {
   progress: Route | null;
 };
 
-/**
- * The strip at the top of the owner's own page, in every state; Learn's progress for someone who learns. `build`:
- * Build is open to the owner, so a built project is one more way to fill an empty page.
- */
-export function stripOf(mine: Pick<SkillsMine, 'state' | 'usesLearn'>, build = false): StripWords {
+/** The strip at the top of the owner's own page, in every state; Learn's progress for someone who learns. */
+export function stripOf(mine: Pick<SkillsMine, 'state' | 'usesLearn'>): StripWords {
   const progress = mine.usesLearn ? LEARN_PROGRESS_PATH : null;
   switch (mine.state) {
     case 'PUBLIC':
@@ -38,9 +35,7 @@ export function stripOf(mine: Pick<SkillsMine, 'state' | 'usesLearn'>, build = f
     default:
       return {
         strong: 'Only you can see this page',
-        rest: build
-          ? ', until you send a pull request, build a project or learn a lesson.'
-          : ', until you send a pull request or learn a lesson.',
+        rest: ', until you send a pull request, build a project or learn a lesson.',
         actions: [],
         progress: null,
       };
@@ -53,18 +48,16 @@ export type SkillsProduct = LearnFixMade | 'BUILD';
 /** A product's box: its promotion, or the step that puts the first thing on the page; "Only you see this" at the end. */
 export type ProductBox = { product: SkillsProduct; mode: 'promo' | 'step'; onlyYou: boolean };
 
-/** The page for someone with nothing on it yet: its heading and line, whether the list's numbers show, its boxes. */
-export type StartWords = { heading: string; line: string; numbers: boolean; boxes: ProductBox[] };
+/** The page for someone with nothing on it yet: its heading and line, and its boxes. */
+export type StartWords = { heading: string; line: string; boxes: ProductBox[] };
 
 /**
- * `NEW` (uses no product) and `NOTHING_YET` (uses one or more, nothing to show): the heading, the line, the box about
- * our list of issues on `NEW` alone, then one box for each product, a step for a product the person uses. With
- * `build` (Build is open to the owner) the three boxes are Learn, Build, Contribute, of equal weight; without it, Build
- * is not named and the two boxes keep their order. Null for a page with something on it.
+ * `NEW` (uses no product) and `NOTHING_YET` (uses one or more, nothing to show): the heading, the line, then one box
+ * for each product, of equal weight, in the order Learn, Build, Contribute: a step for a product the person uses, else
+ * its promotion. Null for a page with something on it.
  */
 export function startOf(
   mine: Pick<SkillsMine, 'state' | 'usesContribute' | 'usesLearn'> & Partial<Pick<SkillsMine, 'usesBuild'>>,
-  build = false,
 ): StartWords | null {
   if (mine.state !== 'NEW' && mine.state !== 'NOTHING_YET') return null;
   const empty = mine.state === 'NOTHING_YET';
@@ -73,29 +66,17 @@ export function startOf(
     mode: empty && uses ? 'step' : 'promo',
     onlyYou: false,
   });
-  const contribute = boxOf('CONTRIBUTE', mine.usesContribute);
-  const learn = boxOf('LEARN', mine.usesLearn);
-  if (build) {
-    const uses = [mine.usesLearn, mine.usesBuild === true, mine.usesContribute].filter(Boolean).length;
-    const line =
-      'Fixes that real projects merged, projects you built, and lessons you learned: a page you can show an employer.';
-    return {
-      heading: 'This page shows what you fix, build and learn with GitRanks',
-      line: empty && uses > 1 ? `${line} There are three ways to fill it, and you can use them all.` : line,
-      // The approved page for someone new is the three boxes alone.
-      numbers: false,
-      boxes: [learn, boxOf('BUILD', mine.usesBuild === true), contribute],
-    };
-  }
-  const line = 'Fixes that real projects merged, and lessons you learned: a page you can show an employer.';
+  const uses = [mine.usesLearn, mine.usesBuild === true, mine.usesContribute].filter(Boolean).length;
+  const line =
+    'Fixes that real projects merged, projects you built, and lessons you learned: a page you can show an employer.';
   return {
-    heading: 'This page shows what you fix and learn with GitRanks',
-    line:
-      empty && mine.usesContribute && mine.usesLearn
-        ? `${line} There are two ways to fill it, and you can use both.`
-        : line,
-    numbers: mine.state === 'NEW',
-    boxes: [contribute, learn],
+    heading: 'This page shows what you fix, build and learn with GitRanks',
+    line: empty && uses > 1 ? `${line} There are three ways to fill it, and you can use them all.` : line,
+    boxes: [
+      boxOf('LEARN', mine.usesLearn),
+      boxOf('BUILD', mine.usesBuild === true),
+      boxOf('CONTRIBUTE', mine.usesContribute),
+    ],
   };
 }
 

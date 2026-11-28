@@ -4,8 +4,8 @@ import type { BuildSettings } from './types';
 /* Build's row in Settings: the person's reminders, read and saved. */
 
 /**
- * The person's Build settings: null when they have no build yet (no row is drawn for them), or Build is not open to
- * them. `reminders` unset reads as true.
+ * The person's Build settings: null when they have no build yet (no row is drawn for them).
+ * `reminders` unset reads as true.
  */
 export const BuildSettingsDocument = doc<{ buildSettings: BuildSettings | null }>(
   'query BuildSettings { buildSettings { reminders } }',
@@ -13,7 +13,7 @@ export const BuildSettingsDocument = doc<{ buildSettings: BuildSettings | null }
 
 /**
  * Turns Build's reminders on or off; answers the settings as saved. Refused with NOT_FOUND for a person with no build
- * yet, or Build not open to them.
+ * yet.
  */
 export const SaveBuildSettingsDocument = doc<{ saveBuildSettings: BuildSettings }, { input: BuildSettings }>(
   'mutation SaveBuildSettings($input: BuildSettingsInput!) { saveBuildSettings(input: $input) { reminders } }',

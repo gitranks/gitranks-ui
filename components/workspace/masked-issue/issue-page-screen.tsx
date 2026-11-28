@@ -515,7 +515,7 @@ export function IssuePageScreen(props: IssuePageScreenProps) {
           />
         )}
         <NotForMe onGiveBack={props.onGiveBack} sending={props.givingBack} />
-        {/* Build's door, the last thing on the page: only for a person Build is open to, once their browser knows it. */}
+        {/* Build's door, the last thing on the page: only for a signed-in person, once their browser read it. */}
         {lesson?.slug ? <IssueBuildDoor lesson={{ ...lesson, slug: lesson.slug }} /> : null}
       </>
     );

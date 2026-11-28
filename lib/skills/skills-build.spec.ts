@@ -14,11 +14,9 @@ import {
   builtWebServerGold,
   contributorNumbers,
   contributorPage,
-  ownerBuildsMine,
   SKILLS_NOW,
-  skillsMine,
 } from './__fixtures__/skills';
-import type { SkillsFigure, SkillsKind, SkillsPage } from './skills.types';
+import type { SkillsFigure, SkillsKind } from './skills.types';
 import { builtLanguagesOf, builtLineOf, builtRowOf } from './skills-built';
 import {
   countsBuildsOf,
@@ -30,7 +28,6 @@ import {
 } from './skills-figures';
 import { skillsMarkdownOf } from './skills-markdown';
 import { skillsCardOf, skillsCardSentenceOf } from './skills-share-card';
-import { builtShownOf, ownerLayerOf } from './skills-view';
 
 // The site's address is read once, as the module loads: vitest runs this before the imports.
 vi.hoisted(() => {
@@ -173,24 +170,6 @@ describe('the line under the numbers, with builds', () => {
   it("is today's line while the row counts no build", () => {
     expect(sinceLineOf(contributorNumbers)).not.toContainEqual({ product: 'BUILD' });
     expect(sinceLineOf(bothNumbers)).not.toContainEqual({ product: 'BUILD' });
-  });
-});
-
-describe('who sees the Built rows', () => {
-  it('a public page draws its own rows', () => {
-    expect(builtShownOf(builderPage, { kind: 'none' })).toBe(builderPage.built);
-  });
-
-  it('its owner sees their own rows from their view while the public answer has none, and nobody else does', () => {
-    const page: SkillsPage = { ...(ownerBuildsMine.page as SkillsPage), built: [] };
-    expect(builtShownOf(page, ownerLayerOf(ownerBuildsMine, true))).toEqual([builtMcpServer]);
-    expect(builtShownOf(page, { kind: 'none' })).toEqual([]);
-    expect(builtShownOf(page, ownerLayerOf(skillsMine.publicBoth, true))).toEqual([]);
-  });
-
-  it('has no row for a page kept from before the API sent them', () => {
-    const { built: _built, ...before } = contributorPage;
-    expect(builtShownOf(before as SkillsPage, { kind: 'none' })).toEqual([]);
   });
 });
 

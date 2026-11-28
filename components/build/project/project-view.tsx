@@ -5,7 +5,6 @@ import { Fragment } from 'react';
 import { ProjectBox } from './project-box';
 import { ProjectSteps } from './project-steps';
 import { BUILD_COLUMN } from '@/components/build/column';
-import { BUILD_CODE_REPOSITORY_PUBLIC } from '@/lib/build/built-parts';
 import { BUILD_PROJECTS_PATH, buildCoursePath } from '@/lib/build/paths';
 import { boxBuildOf, needRowsOf, type ProjectSide, projectFactsOf, whatNextOf } from '@/lib/build/project';
 import { courseDoorLineOf, courseRowsOf, lessonsWordsOf, type ProjectCourseRow } from '@/lib/build/project-courses';
@@ -192,12 +191,10 @@ export type ProjectViewProps = {
   courses?: readonly ProjectCourseRow[];
   /** The signed-in person's GitHub login: a built project's Share and Put it on GitHub name it. */
   login?: string | null;
-  /** Whether a built project offers Share (once Build is open to everyone); the catalogue draws it. */
-  share?: boolean;
 };
 
 /** A project's page, for whoever reads it. */
-export function ProjectView({ project, side, openParts, reading = false, courses, login, share }: ProjectViewProps) {
+export function ProjectView({ project, side, openParts, reading = false, courses, login }: ProjectViewProps) {
   const build = boxBuildOf(side);
   const courseRows = courses ?? courseRowsOf(project, []);
   const starting = !build;
@@ -214,7 +211,7 @@ export function ProjectView({ project, side, openParts, reading = false, courses
         )}
         aria-busy={reading || undefined}
       >
-        <ProjectBox project={project} side={side} login={login} share={share} />
+        <ProjectBox project={project} side={side} login={login} />
         {build?.state.kind === 'built' && <WhatNext project={project} build={build} courses={courseRows} />}
         {starting && <WhatYouWillHave project={project} />}
         <ProjectSteps project={project} build={build} openParts={openParts} />
@@ -222,7 +219,7 @@ export function ProjectView({ project, side, openParts, reading = false, courses
         {starting && <WhatYouNeed project={project} />}
         <p className="m-0 text-xs text-muted-foreground">
           Written and checked by GitRanks
-          {BUILD_CODE_REPOSITORY_PUBLIC && codeLanguage && (
+          {codeLanguage && (
             <>
               <span aria-hidden="true"> · </span>
               <a

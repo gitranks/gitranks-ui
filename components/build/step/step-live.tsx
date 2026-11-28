@@ -22,8 +22,7 @@ async function readMine<T>(path: string): Promise<T | null> {
 
 /**
  * The person's side of a step: where the step stands for each of their builds of the project, and the builds
- * themselves (for the squares and where each build stands). None for a visitor, when Build is not open to them, and
- * when the step's own read fails.
+ * themselves (for the squares and where each build stands). None for a visitor, and when the step's own read fails.
  */
 export async function readStepPersonal(project: string, step: string): Promise<StepPersonal | null> {
   const [stepMine, projectMine] = await Promise.all([

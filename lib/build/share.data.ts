@@ -23,8 +23,8 @@ const skillsTagOf = (login: string) => `skills:${login.toLowerCase()}`;
 export type SharedRead<T> = { value: T; failed: boolean };
 
 /**
- * A person's built projects as their public Skills page lists them: none when the page is not public (and, until
- * Build is open to everyone, for everyone). Kept fifteen minutes, as the Skills page is.
+ * A person's built projects as their public Skills page lists them: none when the page is not public. Kept fifteen
+ * minutes, as the Skills page is.
  */
 export async function loadSharedBuilt(login: string): Promise<SharedRead<BuildSharedRow[]>> {
   'use cache';

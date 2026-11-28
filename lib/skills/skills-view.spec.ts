@@ -1,8 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
-import { builderPage, contributorFixes, learnerPage, ownerBuildsMine, skillsMine } from './__fixtures__/skills';
-import type { SkillsPage } from './skills.types';
-import { builtOnlyYouOf, mineAfterOf, moreFixesAfter, ownerLayerOf } from './skills-view';
+import { contributorFixes, learnerPage, skillsMine } from './__fixtures__/skills';
+import { mineAfterOf, moreFixesAfter, ownerLayerOf } from './skills-view';
 
 describe("the owner's layer over a Skills address", () => {
   it('is nothing without the owner’s view', () => {
@@ -51,19 +50,5 @@ describe('"Show 20 more"', () => {
     expect(after.rows.map((fix) => fix.number)).toEqual(contributorFixes.map((fix) => fix.number));
     expect(after.total).toBe(6);
     expect(after.next).toBeNull();
-  });
-});
-
-describe('a Built section only its owner sees', () => {
-  it("is so while the rows drawn are the owner's own, under a page everyone sees", () => {
-    const page: SkillsPage = { ...(ownerBuildsMine.page as SkillsPage), built: [] };
-    expect(builtOnlyYouOf(page, ownerLayerOf(ownerBuildsMine, true))).toBe(true);
-  });
-
-  it('is not once the public answer has the rows, for anyone else, or with nothing built', () => {
-    expect(builtOnlyYouOf(builderPage, ownerLayerOf(ownerBuildsMine, true))).toBe(false);
-    const page: SkillsPage = { ...(ownerBuildsMine.page as SkillsPage), built: [] };
-    expect(builtOnlyYouOf(page, { kind: 'none' })).toBe(false);
-    expect(builtOnlyYouOf(page, ownerLayerOf(skillsMine.publicBoth, true))).toBe(false);
   });
 });

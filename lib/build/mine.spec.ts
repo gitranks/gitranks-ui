@@ -89,7 +89,9 @@ describe('My builds: the parts of a row', () => {
 
   it('says one line on the gold test, and nothing once it is earned', () => {
     const first = { waits: false, firstDay: '2026-12-03' };
-    expect(goldLineOf({ kind: 'opens_on', date: '2026-12-03' }, first)).toBe('The gold test opens on 3 Dec.');
+    expect(goldLineOf({ kind: 'opens_on', date: '2026-12-03' }, first)).toBe(
+      'The gold test opens on 3 Dec. We will email you that day.',
+    );
     expect(goldLineOf({ kind: 'open' }, { ...first, waits: true })).toBe(
       'The gold test is open. It is at the top of this page.',
     );
@@ -97,16 +99,13 @@ describe('My builds: the parts of a row', () => {
     expect(goldLineOf({ kind: 'earned', at: '2026-11-11T09:00:00.000Z' }, first)).toBeNull();
   });
 
-  it('promises the email only once emails go, and only for the day the gold test first opens', () => {
-    const first = { waits: false, firstDay: '2026-12-03', emails: true };
+  it('promises the email only for the day the gold test first opens', () => {
+    const first = { waits: false, firstDay: '2026-12-03' };
     expect(goldLineOf({ kind: 'opens_on', date: '2026-12-03' }, first)).toBe(
       'The gold test opens on 3 Dec. We will email you that day.',
     );
     // A failed try closes it until the next day: it opens again, as the project's box says, and no email goes for that.
     expect(goldLineOf({ kind: 'opens_on', date: '2026-12-04' }, first)).toBe('The gold test opens again on 4 Dec.');
-    expect(goldLineOf({ kind: 'opens_on', date: '2026-12-03' }, { ...first, emails: false })).toBe(
-      'The gold test opens on 3 Dec.',
-    );
   });
 });
 
@@ -236,9 +235,7 @@ describe('My builds: the lists', () => {
   it('names the optional parts built, and when the gold test opens', () => {
     const [row] = viewOf(mineBoardGoldOpensOn).built;
     expect(row.meta).toEqual(['TypeScript', 'built 26 Nov', '9 of 10 in the test', '2 of 5 optional parts']);
-    expect(row.gold).toBe('The gold test opens on 3 Dec.');
-    const emails = mineViewOf(mineBoardGoldOpensOn, MINE_NOW, 'UTC', { emails: true }).built[0];
-    expect(emails.gold).toBe('The gold test opens on 3 Dec. We will email you that day.');
+    expect(row.gold).toBe('The gold test opens on 3 Dec. We will email you that day.');
     const one = viewOf({ ...mineBoardGoldOpensOn, built: [{ ...mineBoardGoldOpensOn.built[0], partsOf: 1 }] });
     expect(one.built[0].meta.at(-1)).toBe('the optional part built');
   });
@@ -247,7 +244,7 @@ describe('My builds: the lists', () => {
     const [row] = viewOf(mineBoardNoMark).built;
     expect(row.meta).toEqual(['Python', 'built 20 Nov', '7 of 10 in the test']);
     expect([row.repeated, row.answeredEveryStep]).toEqual([false, false]);
-    expect(row.gold).toBe('The gold test opens on 27 Nov.');
+    expect(row.gold).toBe('The gold test opens on 27 Nov. We will email you that day.');
   });
 
   it('gives a project built and repeated both marks', () => {

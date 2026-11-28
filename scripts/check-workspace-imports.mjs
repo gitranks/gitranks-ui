@@ -35,7 +35,7 @@
 // |   (build-player), app/api/me/build/,    |   its pull-request/ folder), lib/workspace/                             |
 // |   the start flow app/(onboarding)/build)|                                                                         |
 // | components/build/doors-gate (the doors  | itself, components/build/, lib/workspace/; the rest of Build's code is  |
-// |   into Build on Learn's and Contribute's|   fetched with import() only once Build is open to the viewer           |
+// |   into Build on Learn's and Contribute's|   fetched with import() only for a signed-in person                     |
 // |   pages)                                |                                                                         |
 // | lib/interviews/ (Interviews)            | itself, lib/workspace/                                                  |
 // | components/interviews/                  | itself, lib/interviews/, components/workspace/ (not its pull-request/   |
@@ -137,7 +137,7 @@ const MAY_IMPORT = {
   'lib/build': ['lib/build', 'lib/workspace'],
   'components/build': ['components/build', 'components/build/doors-gate', 'lib/build', 'components/workspace', 'lib/workspace'],
   // The doors into Build on Learn's and Contribute's pages: the one part of Build those pages may import. It fetches
-  // the rest of Build's code with `import()` only once Build is open to the viewer.
+  // the rest of Build's code with `import()` only for a signed-in person.
   'components/build/doors-gate': ['components/build/doors-gate', 'components/build', 'lib/workspace'],
   'app/build': ['app/build', 'lib/build', 'components/build', 'components/build/doors-gate', 'components/workspace', 'lib/workspace'],
   'lib/interviews': ['lib/interviews', 'lib/workspace'],

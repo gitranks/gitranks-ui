@@ -31,7 +31,7 @@ export function buildTestOf(input: { project?: unknown; kind?: unknown; language
   return { project, kind, language: language ?? null };
 }
 
-/** The person's test: null when Build is not open to them, there is no build of the project, or on any failure. */
+/** The person's test: null when there is no build of the project, or on any failure. */
 export async function loadBuildTest(githubLogin: string, test: BuildTestOf): Promise<BuildTest | null> {
   try {
     const { buildTest } = await graphqlDirect(BuildTestDocument, test, { source: 'ssr', githubLogin });

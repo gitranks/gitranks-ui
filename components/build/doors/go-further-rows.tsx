@@ -64,10 +64,10 @@ function RowBody({ row }: { row: Row }) {
 }
 
 /**
- * The list inside "Go further" on a finished course. For a person Build is open to, rows with a mark each: the next
+ * The list inside "Go further" on a finished course. For a signed-in person, rows with a mark each: the next
  * course, Build's project (following the person: start it, go on with it, take its test) and real issues, with the job
- * row in a place left free, so the list is never empty. For anyone else, and until Build is known to be open, `today`:
- * the list as it is drawn today, unchanged. `drawn`: the doors as the catalogue draws them, read from nowhere.
+ * row in a place left free, so the list is never empty. For a visitor, and until the doors are read, `today`: the list
+ * as it is drawn without them. `drawn`: the doors as the catalogue draws them, read from nowhere.
  */
 export function GoFurtherRows({
   course,

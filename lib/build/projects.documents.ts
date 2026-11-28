@@ -8,7 +8,7 @@ export const BuildProjectsDocument = doc<{ buildProjects: BuildProjectCard[] }>(
   `query BuildProjects { buildProjects { ${PROJECT_CARD} } }`,
 );
 
-/** The signed-in person's builds of every project they touched; null when Build is not open to them. */
+/** The signed-in person's builds of every project they touched; null signed out. */
 export const BuildProjectsMineDocument = doc<{ buildProjectsMine: BuildMine[] | null }>(
   `query BuildProjectsMine { buildProjectsMine { ${BUILD_MINE} } }`,
 );

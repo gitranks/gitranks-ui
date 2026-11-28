@@ -7,9 +7,7 @@ import { FaCode } from 'react-icons/fa6';
 import { GoPackage, GoRepo } from 'react-icons/go';
 import { GrLocation } from 'react-icons/gr';
 
-import { ContributeMenuItem } from './contribute-menu-item';
 import { GrowMenuItem, type GrowSection } from './grow-menu-item';
-import { LearnMenuItem } from './learn-menu-item';
 import { ListItem } from './menu-list-item';
 import { mainMenuItemClass } from './menu-styles';
 import { PhoneMenu } from './phone-menu';
@@ -44,12 +42,11 @@ export function MainMenu({
   // hydration it is dropped and the closed menu unmounts as usual: a mounted one keeps its
   // dismiss layer listening and swallows Escape on every page.
   const [hydrated, setHydrated] = useState(false);
-  // Whether Build is open to this viewer, read in the browser since the page is shared: closed, the menu is today's.
-  // Build's own pages reach only people Build is open to (the proxy answers 404 to anyone else), so they serve Grow
-  // from the start; whether the person has a build ("New") is still read in the browser. Interviews' pages likewise.
+  // Whether the person has a build (Grow's "New"), read in the browser since the page is shared.
   const read = useBuildViewer();
-  const build = drawn ?? { open: read.open || section === 'build', hasBuild: read.hasBuild };
-  // The same for Interviews, read apart: Grow is drawn when either is open to the viewer, and lists only what is.
+  const build = drawn ?? read;
+  // Whether Interviews is open to this viewer, read apart: Interviews' own pages reach only people it is open to (the
+  // proxy answers 404 to anyone else), so they list it from the start.
   const interviewsRead = useInterviewsViewer();
   const interviews = drawnInterviews ?? { open: interviewsRead.open || section === 'interviews' };
 
@@ -100,20 +97,11 @@ export function MainMenu({
           </Link>
         </NavigationMenuLink>
       </NavigationMenuItem>
-      {build.open || interviews.open ? (
-        // Grow, in the place of Contribute and Learn.
-        <GrowMenuItem
-          section={growSectionOf(section)}
-          isNew={build.hasBuild !== true}
-          open={{ build: build.open, interviews: interviews.open }}
-        />
-      ) : (
-        <>
-          {/* With no section named, the two mark themselves by the path: the workspace's layout reads no path. */}
-          <ContributeMenuItem active={section ? section === 'contribute' : undefined} />
-          <LearnMenuItem active={section ? section === 'learn' : undefined} />
-        </>
-      )}
+      <GrowMenuItem
+        section={growSectionOf(section)}
+        isNew={build.hasBuild !== true}
+        open={{ interviews: interviews.open }}
+      />
     </PhoneMenu>
   );
 }

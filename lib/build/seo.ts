@@ -1,4 +1,6 @@
 import { BUILD_ABOUT_PATH, BUILD_HOME_PATH, BUILD_PROJECTS_PATH } from './paths';
+import { withBuildPreview } from './project-seo';
+import { BUILD_HOME_CARD_URL, HOME_CARD } from './share-card';
 import { pageMetadata } from '@/lib/seo/page-metadata';
 
 /*
@@ -9,12 +11,15 @@ import { pageMetadata } from '@/lib/seo/page-metadata';
 const LANDING_TEXT =
   'Pick a project. Your agent brings in the code one small step at a time, you try each step, and at the end you understand what you built.';
 
-/** Build's home. */
-export const BUILD_HOME_METADATA = pageMetadata({
-  title: { absolute: 'GitRanks Build: build real things with your own AI agent' },
-  description: LANDING_TEXT,
-  path: BUILD_HOME_PATH,
-});
+/** Build's home, with its picture. */
+export const BUILD_HOME_METADATA = withBuildPreview(
+  pageMetadata({
+    title: { absolute: 'GitRanks Build: build real things with your own AI agent' },
+    description: LANDING_TEXT,
+    path: BUILD_HOME_PATH,
+  }),
+  { picture: BUILD_HOME_CARD_URL, alt: HOME_CARD.title, title: 'GitRanks Build' },
+);
 
 /** All projects. */
 export const BUILD_PROJECTS_METADATA = pageMetadata({

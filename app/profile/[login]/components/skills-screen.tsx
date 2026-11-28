@@ -7,7 +7,7 @@ import { SkillsPageView } from '@/components/skills/skills-page-view';
 import { skillsFixesApiPath } from '@/lib/skills/paths';
 import type { SkillsFixesAnswer, SkillsPage } from '@/lib/skills/skills.types';
 import { otherBoxOf } from '@/lib/skills/skills-owner';
-import { builtShownOf, moreFixesAfter, ownerLayerOf } from '@/lib/skills/skills-view';
+import { builtOnlyYouOf, builtShownOf, moreFixesAfter, ownerLayerOf } from '@/lib/skills/skills-view';
 
 /**
  * A public Skills page: the same content for everyone, drawn on the server, with "Show 20 more" adding fixes in place.
@@ -59,6 +59,7 @@ export function SkillsScreen({
   return (
     <SkillsPageView
       page={{ ...page, fixes, built: builtShownOf(page, layer) }}
+      builtOnlyYou={builtOnlyYouOf(page, layer)}
       now={now}
       strip={strip}
       other={layer.kind === 'none' ? null : otherBoxOf(layer.mine)}

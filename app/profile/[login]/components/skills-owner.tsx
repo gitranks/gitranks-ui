@@ -5,6 +5,7 @@ import { createContext, type ReactNode, useCallback, useContext, useEffect, useS
 import { toast } from 'sonner';
 
 import { setSkillsHiddenAction } from './skills-hidden.actions';
+import { useBuildViewer } from '@/components/build/build-viewer';
 import { SkillsStrip } from '@/components/skills/skills-strip';
 import { SKILLS_MINE_PATH, skillsPath } from '@/lib/skills/paths';
 import type { SkillsHiddenResult, SkillsMine, SkillsMineAnswer } from '@/lib/skills/skills.types';
@@ -100,7 +101,7 @@ export function StripRow() {
   return <div aria-hidden="true" className="min-h-14" data-skills-strip-row="" />;
 }
 
-/** The owner's strip for `mine`, wired to hide and show the page. */
+/** The owner's strip for `mine`, wired to hide and show the page; it names Build while Build is open to them. */
 export function OwnerStrip({
   login,
   mine,
@@ -112,8 +113,10 @@ export function OwnerStrip({
   pending: boolean;
   toggle: (hidden: boolean) => void;
 }) {
+  const { open: build } = useBuildViewer();
   return (
     <SkillsStrip
+      build={build}
       mine={mine}
       href={skillsPath(loginFromPath(login))}
       onHide={() => toggle(true)}

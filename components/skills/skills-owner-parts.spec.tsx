@@ -72,6 +72,19 @@ describe('SkillsStart', () => {
   it('draws nothing for a page with something on it', () => {
     expect(renderToStaticMarkup(<SkillsStart mine={skillsMine.publicLearner} />)).toBe('');
   });
+
+  it('draws someone new three boxes while Build is open to them: Learn, Build, Contribute', () => {
+    const { root, text, hrefs } = draw(<SkillsStart mine={skillsMine.new} build />);
+    expect(text).toContain('This page shows what you fix, build and learn with GitRanks');
+    expect(text).not.toContain('We find the issues that really need a fix');
+    expect([...root.querySelectorAll<HTMLElement>('[data-product-box]')].map((box) => box.dataset.productBox)).toEqual([
+      'LEARN',
+      'BUILD',
+      'CONTRIBUTE',
+    ]);
+    expect(text).toContain('A short test at the end. Every project you build shows on this page.');
+    expect(hrefs).toEqual(['/learn', '/build', '/contribute/about']);
+  });
 });
 
 describe('SkillsProductBox and SkillsIssuesBox', () => {

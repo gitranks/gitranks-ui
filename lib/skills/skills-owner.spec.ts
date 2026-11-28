@@ -1,6 +1,15 @@
 import { describe, expect, it } from 'vitest';
 
-import { bothNumbers, contributorNumbers, firstFixNumbers, learnerNumbers, skillsMine } from './__fixtures__/skills';
+import {
+  allThreeNumbers,
+  bothNumbers,
+  builderNumbers,
+  buildsAndFixesNumbers,
+  contributorNumbers,
+  firstFixNumbers,
+  learnerNumbers,
+  skillsMine,
+} from './__fixtures__/skills';
 import { blockLinkOf, blockOwnerLineOf, otherBoxOf, startOf, stripOf } from './skills-owner';
 
 describe('stripOf', () => {
@@ -32,6 +41,40 @@ describe('stripOf', () => {
       actions: [],
       progress: null,
     });
+  });
+});
+
+describe('the strip while Build is open to the owner', () => {
+  it('names building a project as one more way to fill an empty page', () => {
+    expect(stripOf(skillsMine.new, true).rest).toBe(
+      ', until you send a pull request, build a project or learn a lesson.',
+    );
+    expect(stripOf(skillsMine.publicLearner, true).strong).toBe('Everyone can see this page.');
+  });
+});
+
+describe('startOf while Build is open to the owner', () => {
+  it('shows someone new three boxes of equal weight: Learn, Build, Contribute', () => {
+    expect(startOf(skillsMine.new, true)).toEqual({
+      heading: 'This page shows what you fix, build and learn with GitRanks',
+      line: 'Fixes that real projects merged, projects you built, and lessons you learned: a page you can show an employer.',
+      numbers: false,
+      boxes: [
+        { product: 'LEARN', mode: 'promo', onlyYou: false },
+        { product: 'BUILD', mode: 'promo', onlyYou: false },
+        { product: 'CONTRIBUTE', mode: 'promo', onlyYou: false },
+      ],
+    });
+  });
+
+  it('gives Build its step for someone with a build and nothing on the page yet', () => {
+    const start = startOf({ ...skillsMine.nothingYetContributor, usesBuild: true }, true);
+    expect(start?.boxes.map((box) => [box.product, box.mode])).toEqual([
+      ['LEARN', 'promo'],
+      ['BUILD', 'step'],
+      ['CONTRIBUTE', 'step'],
+    ]);
+    expect(start?.line).toMatch(/There are three ways to fill it, and you can use them all\.$/);
   });
 });
 
@@ -93,5 +136,16 @@ describe('the block', () => {
     expect(blockLinkOf({ ...learnerNumbers, fixes: 0 })).toBe('All 3 courses');
     expect(blockLinkOf({ fixes: 0, courses: 1 })).toBe('See the course');
     expect(blockLinkOf({ fixes: 0, courses: 0 })).toBeNull();
+  });
+
+  it('names the built projects too, in the order of the tab', () => {
+    expect(blockLinkOf(builderNumbers)).toBe('All 3 projects');
+    expect(blockLinkOf(buildsAndFixesNumbers)).toBe('All fixes and projects');
+    expect(blockLinkOf(allThreeNumbers)).toBe('All fixes, projects and courses');
+    const one = {
+      ...builderNumbers,
+      figures: [{ key: 'PROJECTS_BUILT' as const, value: 1, second: null, name: null, also: null }],
+    };
+    expect(blockLinkOf(one)).toBe('See the project');
   });
 });

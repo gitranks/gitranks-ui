@@ -1,11 +1,13 @@
 'use client';
 
+import { useSession } from 'next-auth/react';
 import { useEffect, useState } from 'react';
 
 import { ProjectView } from './project-view';
 import { HOME_READ_WAIT_MS } from '@/lib/build/home';
 import { buildProjectMinePath, buildTestMinePath } from '@/lib/build/paths';
 import type { ProjectSide } from '@/lib/build/project';
+import type { ProjectCourseRow } from '@/lib/build/project-courses';
 import type { BuildProjectMine, BuildProjectPage, BuildTest } from '@/lib/build/types';
 import { readBuildZone, zoneSent } from '@/lib/build/zone-live';
 import { hasSessionHint } from '@/lib/session-hint';
@@ -55,7 +57,16 @@ export async function readProjectTest(slug: string, mine: BuildProjectMine): Pro
  * marks in place, and a visitor asks for nothing. The page comes drawn for a visitor; while a browser with a session
  * reads, what may change stays hidden in its place, and shows by itself after the read's time limit.
  */
-export function ProjectLive({ project }: { project: BuildProjectPage }) {
+export function ProjectLive({
+  project,
+  courses,
+}: {
+  project: BuildProjectPage;
+  /** The Learn courses that help, with their lines and lessons. */
+  courses?: readonly ProjectCourseRow[];
+}) {
+  // A built project's Share and Put it on GitHub name the person's login.
+  const login = useSession().data?.user?.githubLogin ?? null;
   const [side, setSide] = useState<ProjectSide>({ kind: 'pending' });
   const [reading, setReading] = useState(true);
   const { slug } = project;
@@ -87,5 +98,5 @@ export function ProjectLive({ project }: { project: BuildProjectPage }) {
   }, [slug]);
 
   // The browser's zone was saved before the reads (`zoneSent`), so no note sends it again.
-  return <ProjectView project={project} side={side} reading={reading} />;
+  return <ProjectView project={project} side={side} reading={reading} courses={courses} login={login} />;
 }

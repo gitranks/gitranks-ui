@@ -1,4 +1,4 @@
-import { Check, Star } from 'lucide-react';
+import { Check, EyeOff, Star } from 'lucide-react';
 import Link from 'next/link';
 
 import { SkillsLine } from './skills-line';
@@ -78,26 +78,40 @@ export function SkillsBuiltRow({ row, now }: { row: SkillsBuilt; now: Date }) {
   );
 }
 
+/** The line Built carries while only its owner sees it. */
+export const BUILT_ONLY_YOU = 'Only you see this section until Build is open to everyone.';
+
 /**
  * "Built": the projects the person built with GitRanks Build, the one built last first, under the line that says how
- * they were made. Between the fixes and the courses. Nothing without a built project, heading included.
+ * they were made. Between the fixes and the courses. Nothing without a built project, heading included. `onlyYou`: the
+ * rows are the owner's own, which only they see until Build is open to everyone; a small note says so.
  */
 export function SkillsBuiltSection({
   built,
   login,
   now,
+  onlyYou = false,
 }: {
   built: readonly SkillsBuilt[] | undefined;
   login: string;
   now: Date;
+  onlyYou?: boolean;
 }) {
   if (!built?.length) return null;
   return (
     <section aria-labelledby="skills-built" className="flex flex-col gap-3" data-skills-built-section="">
       <div className="flex flex-col gap-1">
-        <h3 id="skills-built" className="m-0 text-xl font-bold tracking-tight">
-          Built
-        </h3>
+        <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
+          <h3 id="skills-built" className="m-0 text-xl font-bold tracking-tight">
+            Built
+          </h3>
+          {onlyYou ? (
+            <span className="flex items-center gap-1.5 text-xs text-muted-foreground" data-skills-built-only-you="">
+              <EyeOff aria-hidden="true" className="size-3.5 shrink-0" />
+              {BUILT_ONLY_YOU}
+            </span>
+          ) : null}
+        </div>
         <p className="m-0 text-sm text-muted-foreground">
           <SkillsLine parts={builtLineOf(login)} />
         </p>

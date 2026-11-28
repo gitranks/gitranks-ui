@@ -3,10 +3,13 @@ import type { ReactNode } from 'react';
 import type { Screen } from '../registry';
 import { BuildBar } from '@/components/build/bar/build-bar';
 import { ProjectBox } from '@/components/build/project/project-box';
+import { GithubPanel, SharePanel } from '@/components/build/project/project-share';
 import { ProjectParts } from '@/components/build/project/project-steps';
 import { ProjectView, type ProjectViewProps, WhatNext } from '@/components/build/project/project-view';
+import { BuildShareCard } from '@/components/build/share/build-cards';
 import { Header } from '@/components/header/header';
 import { barBuilder, barNone } from '@/lib/build/__fixtures__/builds';
+import { mcpServerCourseFacts } from '@/lib/build/__fixtures__/courses';
 import {
   builtOnePart,
   endTestFailedNow,
@@ -29,6 +32,9 @@ import { endTestOpen, goldTestReady, testRun } from '@/lib/build/__fixtures__/te
 import { buildBarViewOf } from '@/lib/build/build-bar';
 import { buildProjectPath } from '@/lib/build/paths';
 import type { ProjectSide } from '@/lib/build/project';
+import { courseRowsOf } from '@/lib/build/project-courses';
+import { buildShareUrlOf, githubWordsOf } from '@/lib/build/project-share';
+import { personCardOf } from '@/lib/build/share-card';
 import type { BuildBar as BuildBarRead, BuildProjectMine, BuildTest } from '@/lib/build/types';
 
 /*
@@ -46,9 +52,26 @@ const SOURCES = [
   'components/build/project/project-steps.tsx',
   'components/build/project/project-say.tsx',
   'components/build/project/project-squares.tsx',
+  'components/build/project/project-share.tsx',
   'lib/build/project.ts',
   'lib/build/project.data.ts',
+  'lib/build/project-courses.ts',
+  'lib/build/project-share.ts',
 ];
+
+/** The Learn courses that help, with their lines and lessons, as the list of courses gives them. */
+const COURSES = courseRowsOf(mcpServerFiveParts, mcpServerCourseFacts);
+/** The catalogue's signed-in person. */
+const LOGIN = 'octocat';
+/** Their build of the first project, as their public Skills page lists it, for the posted picture. */
+const SHARED = {
+  project: 'mcp-server',
+  thing: 'an MCP server',
+  languages: ['typescript'],
+  steps: 16,
+  builtAt: '2026-11-26T10:00:00Z',
+  gold: true,
+};
 
 const person = (mine: BuildProjectMine, test: BuildTest | null = null): ProjectSide => ({
   kind: 'person',
@@ -62,10 +85,28 @@ function Page({ bar, ...props }: ProjectViewProps & { bar: BuildBarRead }) {
     <>
       <Header />
       <BuildBar view={buildBarViewOf(bar)} place="projects" />
-      <ProjectView {...props} />
+      <ProjectView courses={courseRowsOf(props.project, mcpServerCourseFacts)} {...props} />
     </>
   );
 }
+
+/** A panel as it opens over the page: its own frame and shadow, at its own width. */
+function Floating({ width, children }: { width: number; children: ReactNode }) {
+  return (
+    <div className="rounded-xl border bg-popover p-4 text-popover-foreground shadow-lg" style={{ width }}>
+      {children}
+    </div>
+  );
+}
+
+/** The posted picture at the size Share shows it. */
+const sharePreview = (
+  <div style={{ width: 358, height: 188, overflow: 'hidden' }}>
+    <div style={{ width: 1200, height: 630, transform: `scale(${358 / 1200})`, transformOrigin: 'top left' }}>
+      <BuildShareCard words={personCardOf(mcpServerFiveParts, LOGIN, SHARED)} />
+    </div>
+  </div>
+);
 
 /** One state on the board of states: its name and what it shows, then the part that changes. */
 function Case({ title, note, children }: { title: string; note?: string; children: ReactNode }) {
@@ -133,7 +174,56 @@ export const BUILD_PROJECT_SCREEN: Screen = {
       path: PATH,
       height: 2180,
       render: () => (
-        <Page bar={barBuilder} project={mcpServerFiveParts} side={person(mineBuilt)} openParts={['official-sdk']} />
+        <Page
+          bar={barBuilder}
+          project={mcpServerFiveParts}
+          side={person(mineBuilt)}
+          openParts={['official-sdk']}
+          login={LOGIN}
+          share
+        />
+      ),
+    },
+    {
+      id: 'share',
+      title: 'What Share and Put it on GitHub open: the link to copy, then copied, and the two ways to GitHub',
+      path: PATH,
+      width: 1000,
+      height: 1500,
+      render: () => (
+        <main className="mx-auto flex w-full max-w-[920px] flex-col gap-10 px-4 pt-8 pb-16">
+          <Part title="Share">
+            <div className="flex flex-wrap items-start gap-8">
+              <Case
+                title="1 · Share opens"
+                note="The link to copy and how the posted link looks. No other place to post."
+              >
+                <Floating width={392}>
+                  <SharePanel url={buildShareUrlOf(mcpServerFiveParts.slug, LOGIN)} preview={sharePreview} />
+                </Floating>
+              </Case>
+              <Case title="2 · After Copy link" note="The line says the link is copied.">
+                <Floating width={392}>
+                  <SharePanel url={buildShareUrlOf(mcpServerFiveParts.slug, LOGIN)} preview={sharePreview} copied />
+                </Floating>
+              </Case>
+            </div>
+          </Part>
+          <Part title="Put it on GitHub">
+            <Case title="A dialog over the page" note="Ask your agent, or two commands; the name is the project's.">
+              <div className="rounded-xl border bg-background p-6 shadow-lg" style={{ width: 560 }}>
+                <GithubPanel
+                  words={githubWordsOf(mcpServerFiveParts, LOGIN)}
+                  close={
+                    <span className="inline-flex h-9 items-center rounded-md border bg-background px-4 text-sm font-semibold shadow-xs">
+                      Close
+                    </span>
+                  }
+                />
+              </div>
+            </Case>
+          </Part>
+        </main>
       ),
     },
     {
@@ -231,8 +321,11 @@ export const BUILD_PROJECT_SCREEN: Screen = {
             </Case>
           </Part>
           <Part title="What next">
-            <Case title="1 · Every door" note="The next part of this project, the next project, a course.">
-              <WhatNext project={mcpServerFiveParts} build={builtOnePart} />
+            <Case
+              title="1 · Every door"
+              note="The next part of this project, the next project, a course and its lessons."
+            >
+              <WhatNext project={mcpServerFiveParts} build={builtOnePart} courses={COURSES} />
             </Case>
             <Case title="2 · One door" note="A project with no parts and no course still leads to the next project.">
               <WhatNext project={jsonParserProject} build={builtOnePart} />

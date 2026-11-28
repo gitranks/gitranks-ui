@@ -3,10 +3,8 @@ import { notFound } from 'next/navigation';
 
 import { BuildStepLive } from '@/components/build/step/step-live';
 import { HeaderLine } from '@/components/workspace/header-line';
-import { buildStepPath } from '@/lib/build/paths';
-import { stepDescriptionOf } from '@/lib/build/step-page';
+import { buildStepMetadata } from '@/lib/build/project-seo';
 import { loadBuildStepView } from '@/lib/build/step-view.data';
-import { pageMetadata } from '@/lib/seo/page-metadata';
 
 /**
  * A step of a project, the same for everyone and cached for hours; the person's side (the squares, the row under the
@@ -27,12 +25,7 @@ export async function generateMetadata({ params }: PageProps<'/build/[project]/[
   const { project, step } = await params;
   const view = await loadBuildStepView(project, step);
   if (!view) return { title: 'GitRanks Build', robots: { index: false, follow: false } };
-  const { page } = view;
-  return pageMetadata({
-    title: `${page.step.title} · ${page.project.name}`,
-    description: stepDescriptionOf(page),
-    path: buildStepPath(page.project.slug, page.step.slug),
-  });
+  return buildStepMetadata(view.page);
 }
 
 export default async function BuildStepPage({ params }: PageProps<'/build/[project]/[step]'>) {

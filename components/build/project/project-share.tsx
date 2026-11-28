@@ -1,7 +1,7 @@
 'use client';
 
 import { Share } from 'lucide-react';
-import { type ReactNode, useState } from 'react';
+import { type ReactNode, useId, useState } from 'react';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -26,7 +26,7 @@ import { buildProjectCardPath } from '@/lib/build/share-card';
 
 /*
  * A built project's two buttons under its box: Share, a small popover with the link to the person's build, Copy link
- * and how the posted link looks; and Put it on GitHub, a dialog with the sentence for their agent or the two commands.
+ * and how the posted link looks; and Put it on GitHub, a dialog with the sentence for their agent or the three commands.
  * Each panel is its own part, so the design catalogue draws it open on its board.
  */
 
@@ -53,8 +53,11 @@ export function SharePanel({
   preview = null,
   copied = false,
   onCopy,
+  titleId,
 }: {
   url: string;
+  /** The title's id, which names the popover it opens in. */
+  titleId?: string;
   /** The posted picture; none when it is not shown. */
   preview?: ReactNode;
   /** The link was copied: the line says so. */
@@ -63,7 +66,9 @@ export function SharePanel({
 }) {
   return (
     <div data-build-share className="flex flex-col gap-3">
-      <p className="m-0 text-sm font-semibold">Share what you built</p>
+      <p id={titleId} className="m-0 text-sm font-semibold">
+        Share what you built
+      </p>
       <div className="flex items-center gap-2">
         <input
           readOnly
@@ -164,6 +169,7 @@ export function ProjectShareActions({
   share?: boolean;
 }) {
   const [copied, setCopied] = useState(false);
+  const titleId = useId();
   const url = buildShareUrlOf(project.slug, login);
   return (
     <div data-project-share-actions className="flex flex-wrap items-center gap-3">
@@ -175,9 +181,15 @@ export function ProjectShareActions({
               Share
             </Button>
           </PopoverTrigger>
-          <PopoverContent align="start" sideOffset={8} className="w-[min(392px,calc(100vw-2rem))] rounded-xl shadow-lg">
+          <PopoverContent
+            aria-labelledby={titleId}
+            align="start"
+            sideOffset={8}
+            className="w-[min(392px,calc(100vw-2rem))] rounded-xl shadow-lg"
+          >
             <SharePanel
               url={url}
+              titleId={titleId}
               copied={copied}
               onCopy={() => setCopied(true)}
               preview={<SharePreview project={project} login={login} />}

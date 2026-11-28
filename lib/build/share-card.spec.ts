@@ -148,7 +148,11 @@ describe('Share and Put it on GitHub', () => {
       title: 'Put your MCP server on GitHub',
       say: 'Put this project on GitHub as a new public repository named mcp-server',
       repository: 'mcp-server',
-      commands: ['git remote add origin https://github.com/octocat/mcp-server.git', 'git push -u origin main'],
+      commands: [
+        'git remote add origin https://github.com/octocat/mcp-server.git',
+        'git branch -M main',
+        'git push -u origin main',
+      ],
       commit: 'git commit -m "Build an MCP server"',
     });
   });

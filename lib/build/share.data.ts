@@ -39,13 +39,23 @@ export async function loadSharedBuilt(login: string): Promise<SharedRead<BuildSh
   }
 }
 
-/** Every live Learn course's line and lessons, for the courses a project names; none on a failed read. */
+/**
+ * The tag of the list of Learn courses, so a change to a course's lessons reaches a project's page too. Written here,
+ * as Build imports nothing of Learn's.
+ */
+const LEARN_COURSES_TAG = 'learn:courses';
+
+/**
+ * Every live Learn course's line and lessons, for the courses a project names; none on a failed read. Kept for hours,
+ * an empty list (no course live, or a deploy in between) for minutes.
+ */
 export async function loadBuildCourseFacts(): Promise<BuildCourseFacts[]> {
   'use cache';
-  cacheTag(BUILD_PROJECTS_TAG);
+  cacheTag(BUILD_PROJECTS_TAG, LEARN_COURSES_TAG);
   try {
     const { learnCourses } = await graphqlDirect(BuildCourseFactsDocument, {}, { source: 'ssr' });
-    cacheLife('hours');
+    if (learnCourses.length) cacheLife('hours');
+    else cacheLife('minutes');
     return learnCourses;
   } catch {
     cacheLife('minutes');

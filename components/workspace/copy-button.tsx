@@ -2,14 +2,19 @@
 
 import { Check, Copy } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
+import { toast } from 'sonner';
 
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { type ContributeSource, contributeSource } from '@/lib/workspace/click-tracking';
 
+/** What a copy that did not go through says. */
+export const COPY_FAILED = 'Copy did not work. Select the text and copy it.';
+
 /**
  * A button (outline unless `variant` says) that copies `text`, says "Copied" for a moment, and tells a screen reader
- * so. `onCopy` hears of each copy that went through.
+ * so. `onCopy` hears of each copy that went through. A browser that cannot copy (no clipboard, or a refused write)
+ * says so in a toast.
  */
 export function CopyButton({
   text,
@@ -43,6 +48,7 @@ export function CopyButton({
       timer.current = setTimeout(() => setCopied(false), 1500);
     } catch {
       setCopied(false);
+      toast.error(COPY_FAILED);
     }
   };
 

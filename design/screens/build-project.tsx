@@ -210,7 +210,7 @@ export const BUILD_PROJECT_SCREEN: Screen = {
             </div>
           </Part>
           <Part title="Put it on GitHub">
-            <Case title="A dialog over the page" note="Ask your agent, or two commands; the name is the project's.">
+            <Case title="A dialog over the page" note="Ask your agent, or three commands; the name is the project's.">
               <div className="rounded-xl border bg-background p-6 shadow-lg" style={{ width: 560 }}>
                 <GithubPanel
                   words={githubWordsOf(mcpServerFiveParts, LOGIN)}

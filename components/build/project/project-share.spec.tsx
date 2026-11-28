@@ -95,7 +95,13 @@ describe("a built project's Share and Put it on GitHub", () => {
     await act(async () => buttonOf('Share')?.click());
     const panel = document.querySelector('[data-build-share]');
     expect(panel?.querySelector('input')?.value).toBe('https://example.test/build/mcp-server?by=octocat');
-    expect(panel?.textContent).toContain('Anyone with the link sees the project and that you built it.');
+    expect(panel?.textContent).toContain(
+      'Anyone with the link sees the project, and that you built it once your Skills page is public.',
+    );
+    // The popover is named by its title.
+    const popover = document.querySelector('[data-slot="popover-content"]');
+    const titleId = popover?.getAttribute('aria-labelledby');
+    expect(titleId && document.getElementById(titleId)?.textContent).toBe('Share what you built');
     expect(panel?.textContent).not.toMatch(/\bX\b|LinkedIn/);
     expect(panel?.querySelector('img')?.getAttribute('src')).toBe('/build/mcp-server/card.png?by=octocat');
   });
@@ -107,7 +113,7 @@ describe("a built project's Share and Put it on GitHub", () => {
     expect(dialog?.querySelector('h2')?.textContent).toBe('Put your MCP server on GitHub');
     expect(dialog?.textContent).toContain('Put this project on GitHub as a new public repository named mcp-server');
     expect(dialog?.querySelector('pre')?.textContent).toBe(
-      'git remote add origin https://github.com/octocat/mcp-server.git\ngit push -u origin main',
+      'git remote add origin https://github.com/octocat/mcp-server.git\ngit branch -M main\ngit push -u origin main',
     );
     expect(dialog?.textContent).toContain('git commit -m "Build an MCP server"');
     await act(async () => buttonOf('Close')?.click());

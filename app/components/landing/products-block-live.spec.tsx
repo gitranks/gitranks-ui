@@ -12,8 +12,6 @@ const session = vi.hoisted(() => ({
 vi.mock('next-auth/react', () => ({ useSession: () => session.current }));
 
 const { HOME_PRODUCTS_WAIT_MS, ProductsBlockLive } = await import('./products-block-live');
-// Today's block: once Build is open to everyone, the three cards take its place (`products-block-grow.spec.tsx`).
-const { BUILD_OPEN_TO_EVERYONE } = await import('@/lib/build/built-parts');
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -51,11 +49,12 @@ const expectPromotions = () => {
 };
 
 describe('ProductsBlockLive', () => {
-  it('serves both promotions with the page, asking nothing while it is drawn ahead of a request', () => {
+  it('serves the three promotions with the page, asking nothing while it is drawn ahead of a request', () => {
     signIn();
     const html = renderToStaticMarkup(<ProductsBlockLive contribute />);
     expect(html).toContain('Fix issues in the open source you build on');
     expect(html).toContain('Learn one idea in two minutes');
+    expect(html).toContain('Start building');
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
@@ -73,7 +72,7 @@ describe('ProductsBlockLive', () => {
     expectPromotions();
   });
 
-  it.skipIf(BUILD_OPEN_TO_EVERYONE)("changes a signed-in person's cards in place once read", async () => {
+  it("changes a signed-in person's cards in place once read", async () => {
     signIn();
     fetchMock.mockResolvedValueOnce(answer({ products: homeProducts.both }));
     await render();
@@ -82,7 +81,9 @@ describe('ProductsBlockLive', () => {
     expect(card('CONTRIBUTE')?.textContent).toContain('2 pull requests need you');
     expect(card('CONTRIBUTE')?.getAttribute('href')).toBe('/my/pull-requests');
     expect(card('LEARN')?.textContent).toContain('6 lessons to repeat today');
-    expect(container.querySelectorAll('a')).toHaveLength(2);
+    // Build's card promotes: a browser with no session hint reads nothing of Build.
+    expect(card('BUILD')?.textContent).toContain('Start building');
+    expect(container.querySelectorAll('a')).toHaveLength(3);
     expect(container.querySelectorAll('[data-personal]')).toHaveLength(2);
   });
 

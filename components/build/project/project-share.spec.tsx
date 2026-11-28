@@ -67,14 +67,11 @@ const buttonOf = (text: string) =>
   [...document.querySelectorAll<HTMLButtonElement>('button')].find((button) => button.textContent?.trim() === text);
 
 describe("a built project's Share and Put it on GitHub", () => {
-  it('stand under the box once the login is known; Share only while it is offered', async () => {
-    await draw(<ProjectView project={project} side={built} login="octocat" share />);
+  it('stand under the box once the login is known', async () => {
+    await draw(<ProjectView project={project} side={built} login="octocat" />);
     expect(buttonOf('Share')).toBeDefined();
     expect(buttonOf('Put it on GitHub')).toBeDefined();
-    await draw(<ProjectView project={project} side={built} login="octocat" share={false} />);
-    expect(buttonOf('Share')).toBeUndefined();
-    expect(buttonOf('Put it on GitHub')).toBeDefined();
-    await draw(<ProjectView project={project} side={built} share />);
+    await draw(<ProjectView project={project} side={built} />);
     expect(host.querySelector('[data-project-share-actions]')).toBeNull();
   });
 
@@ -84,14 +81,13 @@ describe("a built project's Share and Put it on GitHub", () => {
         project={project}
         side={{ kind: 'person', mine: fixtures.mineTestLeft, test: null }}
         login="octocat"
-        share
       />,
     );
     expect(host.querySelector('[data-project-share-actions]')).toBeNull();
   });
 
   it("Share opens the link to the person's build, with Copy link and no other place to post", async () => {
-    await draw(<ProjectView project={project} side={built} login="octocat" share />);
+    await draw(<ProjectView project={project} side={built} login="octocat" />);
     await act(async () => buttonOf('Share')?.click());
     const panel = document.querySelector('[data-build-share]');
     expect(panel?.querySelector('input')?.value).toBe('https://example.test/build/mcp-server?by=octocat');
@@ -107,7 +103,7 @@ describe("a built project's Share and Put it on GitHub", () => {
   });
 
   it('Put it on GitHub opens the dialog with the sentence and the commands, with Close', async () => {
-    await draw(<ProjectView project={project} side={built} login="octocat" share />);
+    await draw(<ProjectView project={project} side={built} login="octocat" />);
     await act(async () => buttonOf('Put it on GitHub')?.click());
     const dialog = document.querySelector('[role="dialog"]');
     expect(dialog?.querySelector('h2')?.textContent).toBe('Put your MCP server on GitHub');

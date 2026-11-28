@@ -11,7 +11,7 @@ import type { BuildDoors } from '@/lib/build/types';
 const LINK = 'font-medium text-link hover:underline';
 
 /**
- * The line under a course's numbers, for a person Build is open to: "Build it yourself:" and the things the course's
+ * The line under a course's numbers, for a signed-in person: "Build it yourself:" and the things the course's
  * projects build, three at the most and then how many more, each with the person's place (a tick once built, the
  * step of a build in progress). No line when no project names the course, and none for anyone else. `drawn`: the
  * doors as the catalogue draws them, read from nowhere.

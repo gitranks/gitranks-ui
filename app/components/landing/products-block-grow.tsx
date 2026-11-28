@@ -12,14 +12,11 @@ import {
 import { BUILD_CARD_PROMO, type BuildCardSide, type BuildCardWords, buildCardOf } from '@/lib/build/home-card';
 import type { CourseInLine } from '@/lib/learn/courses-line';
 
-/*
- * The home page's block with Build's card, for a viewer Build is open to. Kept apart from today's block, so its words
- * and Build's card are loaded only once Build is open to the viewer: a person Build is closed to downloads none of it.
- */
+/* The home page's block: Learn's, Build's and Contribute's cards. */
 
 const NO_COURSES: readonly CourseInLine[] = [];
 
-/** The heading and line of the block with Build's card, for a viewer Build is open to. */
+/** The heading and line of the block. */
 export const GROW_HEADING = 'Learn, build, and contribute to open source';
 export const GROW_LINE = 'All three work with your own coding agent, on real code.';
 /** The same without Contribute's card (Contribute not launched, and the person does not use it). */

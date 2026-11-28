@@ -6,7 +6,6 @@ import { type KeyboardEvent, type ReactNode, type Ref, useEffect, useRef, useSta
 
 import { ShareButton } from '@/components/share/share-button';
 import { Button } from '@/components/ui/button';
-import { BUILD_SKILLS_BUILT } from '@/lib/build/built-parts';
 import { placeWordsOf } from '@/lib/build/home';
 import {
   CONTINUE_SENTENCE,
@@ -364,15 +363,12 @@ export function MineBody({
   view,
   login,
   asking = null,
-  skills = BUILD_SKILLS_BUILT,
   onRemove,
 }: {
   view: MineView;
   /** The person's login, for their Skills page; null leaves the words without the link. */
   login: string | null;
   asking?: string | null;
-  /** Whether Skills lists built projects yet: only then does the page say so. */
-  skills?: boolean;
   onRemove: (build: string) => Promise<RemoveOutcome>;
 }) {
   const [remove, setRemove] = useState<{ build: string; step: RemoveStep } | null>(
@@ -488,19 +484,17 @@ export function MineBody({
           </Link>
         </p>
       ) : null}
-      {skills ? (
-        <p className="m-0 text-xs text-muted-foreground" data-build-mine-skills>
-          Built projects also show on{' '}
-          {login ? (
-            <Link href={buildSkillsPath(login)} className="font-medium text-link hover:underline">
-              your Skills page
-            </Link>
-          ) : (
-            'your Skills page'
-          )}
-          , for everyone. Builds in progress show only here.
-        </p>
-      ) : null}
+      <p className="m-0 text-xs text-muted-foreground" data-build-mine-skills>
+        Built projects also show on{' '}
+        {login ? (
+          <Link href={buildSkillsPath(login)} className="font-medium text-link hover:underline">
+            your Skills page
+          </Link>
+        ) : (
+          'your Skills page'
+        )}
+        , for everyone. Builds in progress show only here.
+      </p>
       {status}
     </div>
   );

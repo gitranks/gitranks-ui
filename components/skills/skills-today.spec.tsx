@@ -14,7 +14,7 @@ vi.hoisted(() => {
 const api = vi.hoisted(() => ({ page: null as unknown }));
 vi.mock('server-only', () => ({}));
 vi.mock('next/cache', () => ({ cacheLife: () => {}, cacheTag: () => {} }));
-// The API as it answers while Build is not open to everyone: a document that asks the Built rows gets none.
+// The API's answer for a person with no build: a document that asks the Built rows gets none.
 vi.mock('@/lib/graphql/graphql-direct', () => ({
   graphqlDirect: async (document: DocumentNode) => {
     const page = api.page as Record<string, unknown>;
@@ -41,10 +41,10 @@ type Page = typeof fixtures.contributorPage;
 type Mine = (typeof fixtures.skillsMine)[keyof typeof fixtures.skillsMine];
 
 /*
- * A Skills page with nothing of Build in its answer, compared with the page served before Build's "Built" section came,
- * byte for byte: the page's data as the route hands it to the browser, the screen it serves, the page with "Show 20
- * more", the owner's view of it, the profile's block, the Markdown copy, the share picture and the metadata. Until
- * Build is open to everyone the API sends every public page that way, so everyone gets exactly today's page.
+ * A Skills page with nothing of Build in its answer (a person with no build), compared with the page served before
+ * Build's "Built" section came, byte for byte: the page's data as the route hands it to the browser, the screen it
+ * serves, the page with "Show 20 more", the owner's view of it, the profile's block, the Markdown copy, the share
+ * picture and the metadata. Only the owner's page with nothing on it yet names Build: its three boxes.
  * `__fixtures__/skills-today.json` keeps each case's SHA-256; to save them again after a change made on purpose to
  * today's page, run this spec with `WRITE_TODAY=1`.
  */
@@ -85,14 +85,18 @@ async function casesOf(): Promise<Record<string, string>> {
   }
   for (const [name, mine] of MINES) {
     const strip = <SkillsStrip mine={mine} href="/profile/octocat/skills" onHide={noop} onShow={noop} />;
-    cases[`owner: ${name}`] = mine.page
-      ? renderToStaticMarkup(<SkillsPageView page={mine.page} now={now} strip={strip} other={otherBoxOf(mine)} />)
-      : renderToStaticMarkup(
-          <>
-            {strip}
-            <SkillsStart mine={mine} />
-          </>,
-        );
+    if (mine.page) {
+      cases[`owner: ${name}`] = renderToStaticMarkup(
+        <SkillsPageView page={mine.page} now={now} strip={strip} other={otherBoxOf(mine)} />,
+      );
+    } else {
+      cases[`owner start: ${name}`] = renderToStaticMarkup(
+        <>
+          {strip}
+          <SkillsStart mine={mine} />
+        </>,
+      );
+    }
   }
   return cases;
 }
@@ -120,8 +124,9 @@ describe("a Skills page with nothing of Build is today's page", () => {
     expect(hashOf((await cases)[name] ?? '')).toBe(today[name]);
   });
 
-  it('names nothing of Build', async () => {
-    for (const text of Object.values(await cases)) {
+  it("names nothing of Build but on the owner's page with nothing on it yet", async () => {
+    for (const [name, text] of Object.entries(await cases)) {
+      if (name.startsWith('owner start: ')) continue;
       expect(text).not.toContain('/build');
       expect(text).not.toContain('GitRanks Build');
       expect(text).not.toMatch(/\bBuilt\b|projects? built|"built"/);

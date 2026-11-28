@@ -20,7 +20,7 @@ import {
 import type { BuildDoors } from '@/lib/build/types';
 
 /*
- * The doors into Build on Learn's and Contribute's pages, for a person Build is open to, and Build's row in Settings.
+ * The doors into Build on Learn's and Contribute's pages, for a signed-in person, and Build's row in Settings.
  * For anyone else the pages are today's.
  */
 

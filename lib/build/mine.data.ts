@@ -6,7 +6,7 @@ import { BuildMineDocument, RemoveBuildDocument } from './mine.documents';
 import type { BuildMineList } from './types';
 import { graphqlDirect } from '@/lib/graphql/graphql-direct';
 
-/** My builds for the signed-in person: null when Build is not open to them, and on any failure. Never kept. */
+/** My builds for the signed-in person: null on any failure. Never kept. */
 export async function loadBuildMine(githubLogin: string): Promise<BuildMineList | null> {
   try {
     const { buildMine } = await graphqlDirect(BuildMineDocument, {}, { source: 'ssr', githubLogin });

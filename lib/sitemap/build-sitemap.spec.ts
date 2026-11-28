@@ -11,19 +11,12 @@ describe('the Build sitemap', () => {
     vi.stubEnv('NEXT_PUBLIC_URI', 'https://example.test');
   });
 
-  it('lists nothing at all while Build is not open to everyone', () => {
-    expect(buildSitemapEntries([{ slug: 'mcp-server', base: mcpServerBase }], false)).toEqual([]);
-  });
-
   it("lists Home, Projects and How Build works, then each project and its base's steps, no part step", () => {
     const urls = pathsOf(
-      buildSitemapEntries(
-        [
-          { slug: mcpServerProject.slug, base: mcpServerProject.base },
-          { slug: 'web-server', base: null },
-        ],
-        true,
-      ),
+      buildSitemapEntries([
+        { slug: mcpServerProject.slug, base: mcpServerProject.base },
+        { slug: 'web-server', base: null },
+      ]),
     );
     expect(urls.slice(0, 4)).toEqual([
       ['/build', 0.7],
@@ -39,17 +32,14 @@ describe('the Build sitemap', () => {
   });
 
   it('lists the two pages with no project, and leaves out a slug no project can have, or one twice', () => {
-    expect(pathsOf(buildSitemapEntries([], true))).toHaveLength(2);
+    expect(pathsOf(buildSitemapEntries([]))).toHaveLength(2);
     const urls = pathsOf(
-      buildSitemapEntries(
-        [
-          { slug: 'mine', base: [] },
-          { slug: 'Bad Slug', base: [] },
-          { slug: 'web-server', base: [{ slug: 'test' }, { slug: 'a-socket' }] },
-          { slug: 'web-server', base: [] },
-        ],
-        true,
-      ),
+      buildSitemapEntries([
+        { slug: 'mine', base: [] },
+        { slug: 'Bad Slug', base: [] },
+        { slug: 'web-server', base: [{ slug: 'test' }, { slug: 'a-socket' }] },
+        { slug: 'web-server', base: [] },
+      ]),
     );
     expect(urls.slice(2)).toEqual([
       ['/build/web-server', 0.7],

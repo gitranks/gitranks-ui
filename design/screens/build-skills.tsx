@@ -18,18 +18,15 @@ import {
   builtMcpServer,
   builtWebServer,
   builtWebServerGold,
-  ownerBuildsMine,
   SKILLS_LOGIN,
   SKILLS_NOW,
   skillsMine,
 } from '@/lib/skills/__fixtures__/skills';
 import { skillsPath } from '@/lib/skills/paths';
-import type { SkillsPage } from '@/lib/skills/skills.types';
 
 /*
  * Build on a person's Skills page: the "Built" section between the fixes and the courses, and the numbers with
- * "projects built". Until Build is open to everyone the API sends a person's built projects only to them, on their own
- * page, and every public page is today's.
+ * "projects built", as everyone sees them; the page for someone new, as its owner sees it; the profile's block.
  */
 
 const TAB_PATH = skillsPath(SKILLS_LOGIN);
@@ -49,11 +46,6 @@ const Case = ({ title, children }: { title: string; children: ReactNode }) => (
 const row = (built: Parameters<typeof SkillsBuiltSection>[0]['built']) => (
   <SkillsBuiltSection built={built} login={SKILLS_LOGIN} now={SKILLS_NOW} />
 );
-
-const noop = () => {};
-
-/** The owner's page everyone sees, with their built projects from their own view. */
-const ownPage = ownerBuildsMine.page as SkillsPage;
 
 const tab = (id: string, title: string, height: number, render: () => ReactNode, width?: number) => ({
   id,
@@ -86,7 +78,7 @@ export const BUILD_SKILLS_SCREENS: Screen[] = [
       tab('all', 'All three: fixes, then Built, then courses', 2200, () => (
         <SkillsPageView page={allThreePage} now={SKILLS_NOW} />
       )),
-      tab('builder', 'Someone who only builds, as anyone sees it once Build is open to everyone', 1000, () => (
+      tab('builder', 'Someone who only builds, as anyone sees it', 1000, () => (
         <SkillsPageView page={builderPage} now={SKILLS_NOW} />
       )),
       tab('cases', 'A built project in every case, and the numbers for each kind of person', 2000, () => (
@@ -110,25 +102,12 @@ export const BUILD_SKILLS_SCREENS: Screen[] = [
           </Case>
         </>
       )),
-      tab('new', 'Someone new, as the owner sees it while Build is open to them: Learn, Build, Contribute', 900, () => (
+      tab('new', 'Someone new, as the owner sees it: Learn, Build, Contribute', 900, () => (
         <>
-          <SkillsStrip mine={skillsMine.new} href={TAB_PATH} build />
-          <SkillsStart mine={skillsMine.new} build />
+          <SkillsStrip mine={skillsMine.new} href={TAB_PATH} />
+          <SkillsStart mine={skillsMine.new} />
         </>
       )),
-      tab(
-        'only-you',
-        'Everyone sees the page, but only its owner sees Built until Build is open to everyone',
-        1500,
-        () => (
-          <SkillsPageView
-            page={ownPage}
-            now={SKILLS_NOW}
-            strip={<SkillsStrip mine={ownerBuildsMine} href={TAB_PATH} onHide={noop} onShow={noop} />}
-            builtOnlyYou
-          />
-        ),
-      ),
       tab(
         'block',
         "The profile overview's Skills block of someone who only builds: its link names the projects",

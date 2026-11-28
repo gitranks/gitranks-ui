@@ -1,4 +1,4 @@
-import type { SkillsBuilt, SkillsFixes, SkillsMine, SkillsPage, SkillsState } from './skills.types';
+import type { SkillsFixes, SkillsMine, SkillsPage, SkillsState } from './skills.types';
 
 /*
  * What a Skills address draws once its owner's view is in, and how "Show 20 more" adds rows. Pure: the page's two
@@ -29,26 +29,6 @@ export function ownerLayerOf(mine: SkillsMine | null, publicPage: boolean): Owne
   if (EMPTY.includes(mine.state)) return { kind: 'start', mine };
   if (publicPage) return { kind: 'strip', mine };
   return mine.page ? { kind: 'own', mine, page: mine.page } : { kind: 'none' };
-}
-
-/**
- * The Built rows a public page draws: its own, or, while the public answer has none, the owner's own rows from their
- * view (`layer`). Until Build is open to everyone only its owner's view carries their built projects, and only to them.
- */
-export function builtShownOf(page: Pick<SkillsPage, 'built'>, layer: OwnerLayer): SkillsBuilt[] {
-  const own = page.built ?? [];
-  if (own.length || layer.kind !== 'strip') return own;
-  return layer.mine.page?.built ?? own;
-}
-
-/**
- * Whether the Built rows a public page draws are its owner's own, from their view (`builtShownOf`): then only they see
- * the section, under a strip that says everyone sees the page, and the section says so. Once Build is open to everyone
- * the public answer carries the rows, and this is false by itself.
- */
-export function builtOnlyYouOf(page: Pick<SkillsPage, 'built'>, layer: OwnerLayer): boolean {
-  if (page.built?.length || layer.kind !== 'strip') return false;
-  return Boolean(layer.mine.page?.built?.length);
 }
 
 /** The owner's view after hiding or showing: the API's answer, with the tab's mark as this browser knows it. */

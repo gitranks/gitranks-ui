@@ -74,8 +74,7 @@ export const dayYearOf = (iso: string, zone?: string): string => dayWordsIn(iso,
 /* ------------------------------------------------------------------------------------------------------------------ */
 
 /**
- * Who reads the page: not known yet; a visitor; a session whose side did not come (a failed read, or Build not open
- * to them); or a person with their side of the project and, when their build has the test left, that test.
+ * Who reads the page: not known yet; a visitor; a session whose side did not come (a failed read); or a person with their side of the project and, when their build has the test left, that test.
  */
 export type ProjectSide =
   | { kind: 'pending' }

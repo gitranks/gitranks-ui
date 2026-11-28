@@ -105,8 +105,8 @@ function leftOf(side: BuildHomeSide, home: BuildHome, projects: readonly BuildPr
 }
 
 /**
- * The page for what was read: the landing while nothing says the person has a build (a visitor, Build not open to
- * them, a failed read), else their home. A test comes first in the box, then the build touched last; the other builds
+ * The page for what was read: the landing while nothing says the person has a build (a visitor, a failed
+ * read), else their home. A test comes first in the box, then the build touched last; the other builds
  * in progress follow, one row each.
  */
 export function homeViewOf(side: BuildHomeSide | null, projects: readonly BuildProjectCard[]): BuildHomeView {

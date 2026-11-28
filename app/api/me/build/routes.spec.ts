@@ -32,7 +32,6 @@ const ROUTES: Record<string, { GET?: Route; POST?: Route }> = {
   },
   './start/route': (await import('./start/route')) as { GET?: Route; POST?: Route },
   './test/route': (await import('./test/route')) as { GET?: Route; POST?: Route },
-  './open/route': (await import('./open/route')) as { GET?: Route; POST?: Route },
   './test/start/route': (await import('./test/start/route')) as { GET?: Route; POST?: Route },
   './test/answer/route': (await import('./test/answer/route')) as { GET?: Route; POST?: Route },
   './remove/route': (await import('./remove/route')) as { GET?: Route; POST?: Route },
@@ -49,7 +48,6 @@ const { endTestOpen, testRun } = await import('@/lib/build/__fixtures__/test');
 const { keyValueDatabaseStepNine } = await import('@/lib/build/__fixtures__/doors');
 const { keyValueDatabaseCard, webServerCard } = await import('@/lib/build/__fixtures__/projects');
 const { webServerBuilt } = await import('@/lib/build/__fixtures__/builds');
-const { BuildOpenDocument } = await import('@/lib/build/build.documents');
 
 const URL_BASE = 'https://gitranks.com';
 const signedIn = () => {
@@ -151,10 +149,9 @@ describe("the zone the person's days are counted in", () => {
     const { GET } = await route('./zone/route');
     return (GET as Route)(new NextRequest(`${URL_BASE}/api/me/build/zone`));
   };
-  /** The API's answers: whether Build is open to the person, and the settings they saved (an Error: the read fails). */
-  const api = (open: boolean, settings: unknown) =>
-    graphqlDirect.mockImplementation(async (document: unknown) => {
-      if (document === BuildOpenDocument) return { buildOpen: open };
+  /** The API's answer: the settings they saved (an Error: the read fails). */
+  const api = (settings: unknown) =>
+    graphqlDirect.mockImplementation(async () => {
       if (settings instanceof Error) throw settings;
       return { contributeEmailSettings: settings };
     });
@@ -165,7 +162,7 @@ describe("the zone the person's days are counted in", () => {
     expect(graphqlDirect).not.toHaveBeenCalled();
 
     signedIn();
-    api(true, { timeZone: 'Europe/Kyiv' });
+    api({ timeZone: 'Europe/Kyiv' });
     const res = await get();
     expect(await res.json()).toEqual({ zone: 'Europe/Kyiv' });
     expect(res.headers.get('cache-control')).toBe('private, no-store');
@@ -174,37 +171,12 @@ describe("the zone the person's days are counted in", () => {
 
   it("is the API's default when they saved none, and none when it cannot be read", async () => {
     signedIn();
-    api(true, { timeZone: null });
+    api({ timeZone: null });
     expect(await (await get()).json()).toEqual({ zone: 'America/New_York' });
-    api(true, null);
+    api(null);
     expect(await (await get()).json()).toEqual({ zone: null });
-    api(true, new Error('down'));
+    api(new Error('down'));
     expect(await (await get()).json()).toEqual({ zone: null });
-  });
-
-  it('is none when Build is not open to the person, as every read of Build', async () => {
-    signedIn();
-    api(false, { timeZone: 'Europe/Kyiv' });
-    expect(await (await get()).json()).toEqual({ zone: null });
-  });
-});
-
-describe('whether Build is open to the person', () => {
-  it('is closed signed out without asking, open only for a real true, closed on a failure', async () => {
-    const { GET } = await route('./open/route');
-    const get = () => (GET as Route)(new NextRequest(`${URL_BASE}/api/me/build/open`));
-    const signedOut = await get();
-    expect(await signedOut.json()).toEqual({ open: false });
-    expect(signedOut.headers.get('cache-control')).toBe('private, no-store');
-    expect(graphqlDirect).not.toHaveBeenCalled();
-
-    signedIn();
-    graphqlDirect.mockResolvedValueOnce({ buildOpen: true });
-    expect(await (await get()).json()).toEqual({ open: true });
-    graphqlDirect.mockResolvedValueOnce({ buildOpen: 'yes' });
-    expect(await (await get()).json()).toEqual({ open: false });
-    graphqlDirect.mockRejectedValueOnce(new Error('Cannot query field "buildOpen"'));
-    expect(await (await get()).json()).toEqual({ open: false });
   });
 });
 
@@ -302,7 +274,7 @@ describe('the doors into Build', () => {
     expect(await (await get('course=algorithms')).json()).toEqual({ doors: null });
   });
 
-  it('answers none when Build is not open to the person, and for an ask not of the shape', async () => {
+  it("answers none when the person's builds are refused, and for an ask not of the shape", async () => {
     signedIn();
     graphqlDirect.mockImplementation(async (_doc: unknown, variables: Record<string, unknown> | undefined) => {
       if (variables && 'course' in variables) return { buildCourseProjects: [keyValueDatabaseCard] };

@@ -26,13 +26,5 @@ export const BUILD_MINE = `build project { slug name thing } language state { ${
 /** A test that waits for the person. */
 export const WAITING_TEST = 'build kind project { slug name } language';
 
-/** Whether Build is open to the signed-in person. */
-export const BuildOpenDocument = doc<{ buildOpen: boolean | null }>('query BuildOpen { buildOpen }');
-
-/** Whether Build is open to everyone: asked with no viewer. */
-export const BuildOpenToEveryoneDocument = doc<{ buildOpenToEveryone: boolean | null }>(
-  'query BuildOpenToEveryone { buildOpenToEveryone }',
-);
-
-/** Build's bar for the signed-in person; null when Build is not open to them. */
+/** Build's bar for the signed-in person; null signed out. */
 export const BuildBarDocument = doc<{ buildBar: BuildBar | null }>('query BuildBar { buildBar { hasBuild tests } }');

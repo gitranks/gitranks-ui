@@ -7,7 +7,6 @@ import {
   homePromosOf,
   learnCardOf,
   needsYouLineOf,
-  productsWordsOf,
   showsContributeOf,
 } from './products-block-words';
 import { needsYouRowWordsOf } from '@/lib/workspace/pull-request-list';
@@ -152,17 +151,6 @@ describe("the block's cards and words", () => {
     expect(showsContributeOf(false, null)).toBe(false);
     expect(showsContributeOf(false, homeProducts.learner)).toBe(false);
     expect(showsContributeOf(false, homeProducts.contributor)).toBe(true);
-  });
-
-  it('names both products over two cards, and Learn alone over its own card', () => {
-    expect(productsWordsOf(true)).toEqual({
-      heading: 'Contribute to open source, and learn from it',
-      line: 'Both work with your own coding agent, on real issues in real projects.',
-    });
-    expect(productsWordsOf(false)).toEqual({
-      heading: 'Learn from real open source',
-      line: 'Short lessons, then real issues in real projects to use them on.',
-    });
   });
 });
 

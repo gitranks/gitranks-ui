@@ -180,7 +180,6 @@ export const BUILD_PROJECT_SCREEN: Screen = {
           side={person(mineBuilt)}
           openParts={['official-sdk']}
           login={LOGIN}
-          share
         />
       ),
     },

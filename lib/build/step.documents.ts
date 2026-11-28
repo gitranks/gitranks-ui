@@ -19,7 +19,7 @@ export const BuildAddressDocument = doc<
   { project: string; step?: string | null }
 >(`query BuildAddress($project: String!, $step: String) { buildAddress(project: $project, step: $step) { state } }`);
 
-/** Where one step stands for each of the person's builds of its project; null when Build is not open to them. */
+/** Where one step stands for each of the person's builds of its project; null signed out. */
 export const BuildStepMineDocument = doc<{ buildStepMine: BuildStepMine | null }, { project: string; step: string }>(
   `query BuildStepMine($project: String!, $step: String!) {
     buildStepMine(project: $project, step: $step) { builds { language status } }

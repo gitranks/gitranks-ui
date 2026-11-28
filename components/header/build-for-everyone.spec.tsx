@@ -7,10 +7,6 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { buildInProgress } from '@/lib/build/__fixtures__/builds';
 
-vi.mock('@/lib/build/built-parts', async (original) => ({
-  ...(await original<typeof import('@/lib/build/built-parts')>()),
-  BUILD_OPEN_TO_EVERYONE: true,
-}));
 const session = vi.hoisted(() => ({
   current: { data: null, status: 'unauthenticated' } as { data: unknown; status: string },
 }));
@@ -25,11 +21,8 @@ const { ProductsBlockLive } = await import('@/app/components/landing/products-bl
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
-/*
- * The day Build opens to everyone, one constant (`BUILD_OPEN_TO_EVERYONE`) puts the header's Grow menu and the home
- * page's three cards in the page as the server renders it, for every visitor.
- */
-describe('once Build is open to everyone', () => {
+/* The header's Grow menu and the home page's three cards are in the page as the server renders it, for every visitor. */
+describe('Build for everyone', () => {
   afterEach(() => {
     vi.unstubAllGlobals();
   });
@@ -42,7 +35,6 @@ describe('once Build is open to everyone', () => {
   });
 
   it("serves the home page's block with three cards, Build's promoting it", async () => {
-    // Streamed as the server streams a page, so the block's own code (loaded apart) is in it.
     const { prelude } = await prerender(<ProductsBlockLive contribute />);
     const html = await new Response(prelude).text();
     expect(html).toContain('Learn, build, and contribute to open source');

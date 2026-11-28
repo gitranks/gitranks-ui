@@ -3,9 +3,9 @@ import type { ReactElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
 
-import { SkillsIssuesBox, SkillsProductBox, SkillsStart } from './skills-start';
+import { SkillsProductBox, SkillsStart } from './skills-start';
 import { SkillsStrip } from './skills-strip';
-import { skillsIssueNumbers, skillsMine } from '@/lib/skills/__fixtures__/skills';
+import { skillsMine } from '@/lib/skills/__fixtures__/skills';
 
 const LONG_DASH = String.fromCodePoint(0x2014);
 const HREF = 'https://gitranks.com/profile/octocat/skills';
@@ -37,7 +37,7 @@ describe('SkillsStrip', () => {
 
   it('says until when an empty page is only theirs', () => {
     expect(draw(<SkillsStrip mine={skillsMine.new} href={HREF} />).text).toBe(
-      'Only you can see this page, until you send a pull request or learn a lesson.',
+      'Only you can see this page, until you send a pull request, build a project or learn a lesson.',
     );
   });
 
@@ -49,19 +49,9 @@ describe('SkillsStrip', () => {
 });
 
 describe('SkillsStart', () => {
-  it('draws the page for someone who uses neither: the box about the list, then both promotions', () => {
-    const { root, text, hrefs } = draw(<SkillsStart mine={skillsMine.new} />);
-    expect(text).toContain('This page shows what you fix and learn with GitRanks');
-    expect(text).toContain('We find the issues that really need a fix');
-    expect(text).toContain('2.3 million');
-    expect(text).toContain('About 1 issue in 1,000 makes the list.');
-    expect(root.querySelectorAll('[data-mode="promo"]')).toHaveLength(2);
-    expect(hrefs).toEqual(['/contribute/about', '/learn']);
-  });
-
   it('gives each product used its first step', () => {
     const both = draw(<SkillsStart mine={skillsMine.nothingYetBoth} />);
-    expect(both.text).toContain('There are two ways to fill it, and you can use both.');
+    expect(both.text).toContain('There are three ways to fill it, and you can use them all.');
     expect(both.text).toContain('No pull request sent yet. The first one you send shows here.');
     expect(both.text).toContain('No lesson learned yet. The first one you learn shows here.');
     expect(both.root.querySelector('[data-skills-numbers]')).toBeNull();
@@ -73,8 +63,8 @@ describe('SkillsStart', () => {
     expect(renderToStaticMarkup(<SkillsStart mine={skillsMine.publicLearner} />)).toBe('');
   });
 
-  it('draws someone new three boxes while Build is open to them: Learn, Build, Contribute', () => {
-    const { root, text, hrefs } = draw(<SkillsStart mine={skillsMine.new} build />);
+  it('draws someone new three boxes: Learn, Build, Contribute', () => {
+    const { root, text, hrefs } = draw(<SkillsStart mine={skillsMine.new} />);
     expect(text).toContain('This page shows what you fix, build and learn with GitRanks');
     expect(text).not.toContain('We find the issues that really need a fix');
     expect([...root.querySelectorAll<HTMLElement>('[data-product-box]')].map((box) => box.dataset.productBox)).toEqual([
@@ -87,18 +77,11 @@ describe('SkillsStart', () => {
   });
 });
 
-describe('SkillsProductBox and SkillsIssuesBox', () => {
+describe('SkillsProductBox', () => {
   it('marks the owner’s box about the other product', () => {
     const { text, root } = draw(<SkillsProductBox box={{ product: 'CONTRIBUTE', mode: 'promo', onlyYou: true }} />);
     expect(text).toContain('Only you see this');
     expect(text).toContain('See GitRanks Contribute');
     expect(root.querySelectorAll('li')).toHaveLength(2);
-  });
-
-  it('draws the box about the list with its four numbers, and without them', () => {
-    expect(draw(<SkillsIssuesBox numbers={skillsIssueNumbers} />).root.querySelectorAll('dt')).toHaveLength(4);
-    const bare = draw(<SkillsIssuesBox numbers={null} />);
-    expect(bare.root.querySelector('dl')).toBeNull();
-    expect(bare.text).toContain('Good issues are hard to find');
   });
 });

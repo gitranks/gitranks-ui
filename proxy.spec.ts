@@ -69,17 +69,12 @@ vi.mock('./lib/learn/fix-gate', () => ({
   fixByAttemptRouteGateOf: attemptGate,
   fixViewRouteGateOf: viewGate,
 }));
-const { buildGate } = vi.hoisted(() => ({
-  buildGate: vi.fn(async (_req: unknown, _now: number): Promise<'everyone' | 'person' | 'closed'> => 'closed'),
-}));
-vi.mock('./lib/build/build-gate', () => ({ buildGateOf: buildGate }));
 const { interviewsGate } = vi.hoisted(() => ({
   interviewsGate: vi.fn(async (_req: unknown, _now: number): Promise<'everyone' | 'person' | 'closed'> => 'closed'),
 }));
 vi.mock('./lib/interviews/interviews-gate', () => ({ interviewsGateOf: interviewsGate }));
 
 const {
-  BUILD_NOINDEX,
   INTERVIEWS_NOINDEX,
   default: proxy,
   config,
@@ -124,8 +119,6 @@ describe('proxy', () => {
     realProjectsGate.mockReset();
     realProjectsGate.mockResolvedValue(null);
     sessionRead.ok = true;
-    buildGate.mockReset();
-    buildGate.mockResolvedValue('closed');
     interviewsGate.mockReset();
     interviewsGate.mockResolvedValue('closed');
   });
@@ -1552,52 +1545,9 @@ describe('proxy', () => {
     const isNotFound = (response: Awaited<ReturnType<typeof proxy>>) =>
       response?.headers.get('x-middleware-rewrite')?.endsWith('/_404') ?? false;
 
-    it.each(BUILD_PATHS)('answers %s with the 404 to anyone Build is not open to, never kept', async (path) => {
+    it.each(BUILD_PATHS)('lets everyone through to %s, indexed as any page', async (path) => {
       for (const cookie of [undefined, SIGNED_IN]) {
         const response = await proxy(request(cookie, path), event);
-        expect(isNotFound(response)).toBe(true);
-        expect(response?.headers.get('cache-control')).toBe('private, no-store');
-        expect(response?.headers.get('set-cookie')).toBeNull();
-      }
-      expect(buildGate).toHaveBeenCalledTimes(2);
-      expect(withSession).not.toHaveBeenCalled();
-    });
-
-    it('closes a page’s other requests too', async () => {
-      const post = new NextRequest('https://gitranks.com/build/mine', {
-        method: 'POST',
-        headers: { cookie: SIGNED_IN },
-      });
-      expect(isNotFound(await proxy(post, event))).toBe(true);
-    });
-
-    it('asks nothing on any other address', async () => {
-      for (const path of [
-        '/profile/torvalds',
-        '/learn',
-        '/buildings',
-        '/build.md',
-        '/api/me/build/bar',
-        '/badge/gallery',
-      ]) {
-        await proxy(request(SIGNED_IN, path), event);
-      }
-      expect(buildGate).not.toHaveBeenCalled();
-    });
-
-    it('lets a person Build is open to through, and tells search engines not to index the page', async () => {
-      buildGate.mockResolvedValue('person');
-      const response = await proxy(request(SIGNED_IN, '/build/projects'), event);
-      expect(isNotFound(response)).toBe(false);
-      expect(withSession).toHaveBeenCalledOnce();
-      expect(response?.headers.get('x-robots-tag')).toBe(BUILD_NOINDEX);
-      expect(response?.headers.get('cache-control')).toBe('private, no-cache');
-    });
-
-    it('lets everyone through once Build is open to everyone, indexed as any page', async () => {
-      buildGate.mockResolvedValue('everyone');
-      for (const cookie of [undefined, SIGNED_IN]) {
-        const response = await proxy(request(cookie, '/build'), event);
         expect(isNotFound(response)).toBe(false);
         expect(response?.headers.get('x-robots-tag')).toBeNull();
       }
@@ -1639,7 +1589,6 @@ describe('proxy', () => {
           expect(response?.headers.get('set-cookie')).toBeNull();
         }
         expect(interviewsGate).toHaveBeenCalledTimes(2);
-        expect(buildGate).not.toHaveBeenCalled();
         expect(withSession).not.toHaveBeenCalled();
       },
     );

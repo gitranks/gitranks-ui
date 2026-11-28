@@ -332,7 +332,7 @@ describe('the result', () => {
     await draw();
     expect($('[data-test-score]')?.textContent).toBe('9 of 10. It is Built.');
     expect(text()).toContain('You needed 7.');
-    expect(text()).not.toContain('Skills page');
+    expect(text()).toContain('“Build an MCP server” now shows on your Skills page.');
     expect($('[data-test-pill="every-step"]')).not.toBeNull();
     expect(buttonOf('Open the project')?.getAttribute('href')).toBe('/build/mcp-server');
     expect([...host.querySelectorAll('button')].some((button) => button.textContent?.startsWith('Share'))).toBe(true);

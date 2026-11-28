@@ -10,7 +10,7 @@ import type { BuildDoors } from '@/lib/build/types';
 const LINK = 'font-medium text-foreground hover:underline';
 
 /**
- * The last thing on an issue's page with a lesson, in small grey words, for a person Build is open to who feels not
+ * The last thing on an issue's page with a lesson, in small grey words, for a signed-in person who feels not
  * ready: learn the lesson (when it is new to them), or build a project of the lesson's course with their agent first.
  * No line when there is neither, and none for anyone else. The agent that fixes the issue is never told about it.
  * `drawn`: the doors as the catalogue draws them, read from nowhere.

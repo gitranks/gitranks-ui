@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 
 vi.mock('server-only', () => ({}));
 
-const { buildCardHeadersOf, homeCardResponse, projectCardResponse, stepCardResponse } = await import('./card-response');
+const { homeCardResponse, projectCardResponse, stepCardResponse } = await import('./card-response');
 const { mcpServerProject } = await import('@/lib/build/__fixtures__/project');
 const { listTheToolsStep } = await import('@/lib/build/__fixtures__/step');
 const { BUILD_HOME_CARD_URL, personCardUrlOf, projectCardUrlOf, stepCardUrlOf } = await import(
@@ -89,8 +89,9 @@ describe("Build's pictures, as answered", () => {
     expect(failed.headers.get('retry-after')).toBe('60');
   });
 
-  it('are kept by no one until Build is open to everyone, then as Learn keeps its pictures', () => {
-    expect(buildCardHeadersOf(false)).toEqual({ 'Content-Type': 'image/png', 'Cache-Control': 'private, no-store' });
-    expect(buildCardHeadersOf(true)).toMatchObject({ 'Cache-Control': 'public, max-age=300' });
+  it('are kept as Learn keeps its pictures: five minutes in a browser, ten in a shared cache', async () => {
+    const response = await homeCardResponse(queryOf(BUILD_HOME_CARD_URL), drawn);
+    expect(response.headers.get('cache-control')).toBe('public, max-age=300');
+    expect(response.headers.get('cloudflare-cdn-cache-control')).toBe('max-age=600');
   });
 });

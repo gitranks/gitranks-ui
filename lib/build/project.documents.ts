@@ -11,7 +11,7 @@ export const BuildProjectDocument = doc<{ buildProject: BuildProjectPage | null 
   `query BuildProject($slug: String!) { buildProject(slug: $slug) { ${PROJECT_PAGE} } }`,
 );
 
-/** The signed-in person's builds of one project; null when Build is not open to them. */
+/** The signed-in person's builds of one project; null signed out. */
 export const BuildProjectMineDocument = doc<{ buildProjectMine: BuildProjectMine | null }, { slug: string }>(
   `query BuildProjectMine($slug: String!) {
     buildProjectMine(slug: $slug) { builds { ${BUILD_MINE} } agentConnected say }

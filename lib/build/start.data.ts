@@ -6,7 +6,7 @@ import type { BuildStart } from './types';
 import { graphqlDirect } from '@/lib/graphql/graphql-direct';
 
 /**
- * The start flow's state for the signed-in person, for one project or none: null when Build is not open to them, for
+ * The start flow's state for the signed-in person, for one project or none: null for
  * a project slug no project can have, and on any failure. Never kept: the page reads it again while it waits.
  */
 export async function loadBuildStart(githubLogin: string, project: string | null): Promise<BuildStart | null> {

@@ -56,16 +56,15 @@ export const GROW_ENTRIES: readonly GrowEntry[] = [
 ];
 
 /**
- * The sections Grow lists for a viewer: Learn and Contribute always, Build and Interviews each only once it is open to
- * them. Left out, Learn, Build and Contribute.
+ * The sections Grow lists for a viewer: Learn, Build and Contribute always, Interviews only once it is open to them.
+ * Left out, Learn, Build and Contribute.
  */
-export type GrowOpen = { build: boolean; interviews: boolean };
+export type GrowOpen = { interviews: boolean };
 
-const TODAY_OPEN: GrowOpen = { build: true, interviews: false };
+const TODAY_OPEN: GrowOpen = { interviews: false };
 
 /** Whether Grow lists a section for a viewer. */
-const listed = (section: GrowSection, open: GrowOpen) =>
-  section === 'build' ? open.build : section === 'interviews' ? open.interviews : true;
+const listed = (section: GrowSection, open: GrowOpen) => (section === 'interviews' ? open.interviews : true);
 
 /**
  * The section a path belongs to: Learn's, Build's, Contribute's or Interviews' own pages (never the workspace's under
@@ -155,9 +154,9 @@ function GrowItemsByPath({ isNew, open }: Readonly<{ isNew: boolean; open?: Grow
 }
 
 /**
- * Grow, in the place of Learn and Contribute, for a viewer Build or Interviews is open to. `section`: the section the
- * page belongs to; left out (null), the path says, as Learn's and Contribute's items do. `isNew`: "New" beside Build.
- * `open`: which of Build and Interviews it lists; left out, Build alone.
+ * Grow, the header's way to Learn, Build, Contribute and, once it is open to the viewer, Interviews. `section`: the
+ * section the page belongs to; left out (null), the path says. `isNew`: "New" beside Build. `open`: whether it lists
+ * Interviews; left out, it does not.
  */
 export function GrowMenuItem({
   section,

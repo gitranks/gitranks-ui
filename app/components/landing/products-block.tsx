@@ -2,18 +2,7 @@ import { ArrowRight } from 'lucide-react';
 import Link from 'next/link';
 import type { FC } from 'react';
 
-import {
-  contributeCardOf,
-  type HomeCardWords,
-  type HomeProducts,
-  homePromosOf,
-  learnCardOf,
-  productsWordsOf,
-  showsContributeOf,
-} from './products-block-words';
-import type { CourseInLine } from '@/lib/learn/courses-line';
-
-const NO_COURSES: readonly CourseInLine[] = [];
+import type { HomeCardWords } from './products-block-words';
 
 /**
  * One of a card's parts: the words shown, with the promotion's words under them in the same grid cell, hidden from
@@ -56,41 +45,5 @@ export const ProductCard: FC<{ card: HomeCardWords; promo: HomeCardWords }> = ({
         <ArrowRight aria-hidden="true" className="size-4" />
       </span>
     </Link>
-  );
-};
-
-/**
- * The home page's block for Contribute and Learn: the heading, one line, and two cards of one size, Contribute on the
- * left. With no `products` (a visitor, or a read that failed) both cards promote their product; otherwise a card whose
- * product the person uses says what it has for them today. `now` words the next review. `contribute` false (Contribute
- * not launched, so its landing is not found for visitors) leaves Contribute's card out, except for a person who uses
- * it; Learn's card then stands alone in one column, under Learn's own words. `id` is the heading's, for a board that
- * draws the block more than once. `courses`: Learn's live courses, which its promotion names; none keeps a plain line.
- */
-export const ProductsBlock: FC<{
-  products?: HomeProducts | null;
-  now: Date;
-  contribute?: boolean;
-  id?: string;
-  courses?: readonly CourseInLine[];
-}> = ({ products = null, now, contribute = true, id = 'products', courses = NO_COURSES }) => {
-  const promos = homePromosOf(courses);
-  const both = showsContributeOf(contribute, products);
-  const { heading, line } = productsWordsOf(both);
-  return (
-    <section aria-labelledby={id} className="py-12 lg:py-16" data-products-block={both ? 'both' : 'learn'}>
-      <div className="mx-auto flex w-full max-w-7xl flex-col gap-6 px-4">
-        <div className="flex flex-col gap-2">
-          <h2 id={id} className="m-0 text-2xl font-semibold tracking-tight text-balance md:text-3xl">
-            {heading}
-          </h2>
-          <p className="m-0 max-w-prose text-muted-foreground">{line}</p>
-        </div>
-        <div className={`grid grid-cols-1 gap-4${both ? ' md:grid-cols-2' : ''}`}>
-          {both ? <ProductCard card={contributeCardOf(products)} promo={promos.CONTRIBUTE} /> : null}
-          <ProductCard card={learnCardOf(products, now, promos)} promo={promos.LEARN} />
-        </div>
-      </div>
-    </section>
   );
 };

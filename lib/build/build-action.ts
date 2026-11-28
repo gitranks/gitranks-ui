@@ -7,7 +7,7 @@
  * Why a write was not taken:
  * - `SIGNED_OUT`: no session, or one that needs a new sign-in.
  * - `CONFLICT`: already answered, a run that ended, or a test that cannot start now: the page reads it again.
- * - `NOT_FOUND`: no such build, run or project, or Build is not open to the person.
+ * - `NOT_FOUND`: no such build, run or project.
  * - `INVALID`: not of the shape the API takes, or refused by it (a built project cannot be removed).
  * - `FAILED`: anything else, an API that does not know Build yet included.
  */

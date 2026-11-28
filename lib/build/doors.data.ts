@@ -53,8 +53,7 @@ export async function loadBuildLessonCourse(lesson: string): Promise<string | nu
 
 /**
  * The doors for one course, or for the course of an issue's lesson: its projects and the person's builds of them.
- * Null when Build is not open to the person (their builds are refused), and when either read fails: the page then
- * stays as today, rather than drawing "no project names the course".
+ * Null when either read fails: the page then draws no door, rather than "no project names the course".
  */
 export async function loadBuildDoors(
   githubLogin: string,

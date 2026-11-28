@@ -2,7 +2,6 @@ import { startOfMonth } from 'date-fns';
 
 import { fetchOrgSitemapParts } from '@/graphql/helpers/fetch-org-sitemap-parts';
 import { fetchRepoSitemapParts } from '@/graphql/helpers/fetch-repo-sitemap-parts';
-import { loadBuildOpenToEveryone } from '@/lib/build/build-everyone.data';
 import { INTERVIEWS_OPEN_TO_EVERYONE } from '@/lib/interviews/interviews-parts';
 import { INTERVIEWS_SITEMAP_PATH } from '@/lib/interviews/paths';
 import { apiRegistryOf, DEFAULT_REGISTRY, REGISTRY_IDS, type RegistryId } from '@/lib/packages/registries';
@@ -55,24 +54,18 @@ export function repoTabSitemapLoc(tab: 'used-by' | 'contributors', part: number)
 const partsOf = (count: number, max: number, loc: (part: number) => string) =>
   Array.from({ length: Math.max(0, Math.min(Math.floor(count), max)) }, (_, part) => loc(part));
 
-/** Build's sitemap: listed only once Build is open to everyone. */
+/** Build's sitemap. */
 export const BUILD_SITEMAP_PATH = '/sitemaps/build/sitemap.xml';
 
 /**
- * Every child sitemap: the fixed segments, Interviews' once it is open to everyone (`interviews`), Build's once it is
- * open to everyone (`build`), then the first `repoParts` repository parts and the first `orgParts` organization-page
- * parts.
+ * Every child sitemap: the fixed segments, Interviews' once it is open to everyone (`interviews`), Build's, then the
+ * first `repoParts` repository parts and the first `orgParts` organization-page parts.
  */
-export function listChildSitemapLocs(
-  repoParts = 0,
-  orgParts = 0,
-  interviews = INTERVIEWS_OPEN_TO_EVERYONE,
-  build = false,
-): string[] {
+export function listChildSitemapLocs(repoParts = 0, orgParts = 0, interviews = INTERVIEWS_OPEN_TO_EVERYONE): string[] {
   return [
     ...SITEMAP_SEGMENTS.map(childSitemapLoc),
     ...(interviews ? [absoluteSitemapUrl(INTERVIEWS_SITEMAP_PATH)] : []),
-    ...(build ? [absoluteSitemapUrl(BUILD_SITEMAP_PATH)] : []),
+    absoluteSitemapUrl(BUILD_SITEMAP_PATH),
     ...partsOf(repoParts, SITEMAP_REPO_PARTS_MAX, repoSitemapLoc),
     ...partsOf(orgParts, SITEMAP_ORG_PARTS_MAX, orgSitemapLoc),
   ];
@@ -133,13 +126,9 @@ ${entries}
 
 export async function sitemapIndexResponse(): Promise<Response> {
   // The locs resolve the base URL and throw on misconfig.
-  const [repoParts, orgParts, build] = await Promise.all([
-    fetchRepoSitemapParts(),
-    fetchOrgSitemapParts(),
-    loadBuildOpenToEveryone(),
-  ]);
+  const [repoParts, orgParts] = await Promise.all([fetchRepoSitemapParts(), fetchOrgSitemapParts()]);
   const locs = [
-    ...listChildSitemapLocs(repoParts, orgParts, INTERVIEWS_OPEN_TO_EVERYONE, build),
+    ...listChildSitemapLocs(repoParts, orgParts, INTERVIEWS_OPEN_TO_EVERYONE),
     ...(await packageSitemapLocs()),
   ];
   return new Response(buildSitemapIndexXml(locs, startOfMonth(new Date())), {

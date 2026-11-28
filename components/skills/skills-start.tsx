@@ -2,8 +2,7 @@ import { Check } from 'lucide-react';
 import Link from 'next/link';
 
 import { Button } from '@/components/ui/button';
-import { issueCellsOf, issuesTextOf } from '@/lib/skills/issue-numbers';
-import type { SkillsIssueNumbers, SkillsMine } from '@/lib/skills/skills.types';
+import type { SkillsMine } from '@/lib/skills/skills.types';
 import { PRODUCT_BOX, type ProductBox, startOf } from '@/lib/skills/skills-owner';
 import { cn } from '@/lib/utils';
 
@@ -50,45 +49,13 @@ export function SkillsProductBox({ box }: { box: ProductBox }) {
   );
 }
 
-/** The box about our list of issues: why good issues are hard to find, how we read them, and four live numbers. */
-export function SkillsIssuesBox({ numbers }: { numbers: SkillsIssueNumbers | null }) {
-  const cells = issueCellsOf(numbers);
-  return (
-    <section aria-labelledby="skills-issues" className="flex flex-col gap-4 rounded-xl border bg-card p-5">
-      <div className="flex flex-col gap-1.5">
-        <h3 id="skills-issues" className="m-0 text-lg font-semibold">
-          We find the issues that really need a fix
-        </h3>
-        <p className="m-0 max-w-[82ch] text-sm text-muted-foreground">{issuesTextOf(numbers)}</p>
-      </div>
-      {cells.length ? (
-        <dl
-          className={cn(
-            'm-0 grid grid-cols-2 gap-4 border-t pt-4',
-            cells.length === 3 && 'sm:grid-cols-3',
-            cells.length === 4 && 'sm:grid-cols-4',
-          )}
-        >
-          {cells.map((cell) => (
-            <div key={cell.label} className="flex min-w-0 flex-col items-center gap-0.5 text-center">
-              <dt className="order-2 text-sm text-muted-foreground">{cell.label}</dt>
-              <dd className="order-1 m-0 font-mono text-2xl font-bold tabular-nums">{cell.value}</dd>
-            </div>
-          ))}
-        </dl>
-      ) : null}
-    </section>
-  );
-}
-
 /**
  * The owner's page while it has nothing on it: `NEW` (uses no product) says what this area is for, with one box for
- * each product (and, while Build is not open to them, the box about our list of issues); `NOTHING_YET` gives each
- * product the owner uses the step that puts the first thing on the page. `build`: Build is open to the owner, so its
- * box stands between Learn's and Contribute's. Nothing for a page with something on it.
+ * each product; `NOTHING_YET` gives each product the owner uses the step that puts the first thing on the page.
+ * Nothing for a page with something on it.
  */
-export function SkillsStart({ mine, build = false }: { mine: SkillsMine; build?: boolean }) {
-  const start = startOf(mine, build);
+export function SkillsStart({ mine }: { mine: SkillsMine }) {
+  const start = startOf(mine);
   if (!start) return null;
   return (
     <div className="flex flex-col gap-8" data-skills-start={mine.state}>
@@ -96,14 +63,7 @@ export function SkillsStart({ mine, build = false }: { mine: SkillsMine; build?:
         <h3 className="m-0 text-xl font-bold tracking-tight text-balance">{start.heading}</h3>
         <p className="m-0 max-w-[70ch] text-sm text-muted-foreground">{start.line}</p>
       </div>
-      {start.numbers ? <SkillsIssuesBox numbers={mine.numbers} /> : null}
-      <div
-        className={cn(
-          'grid grid-cols-1 gap-4',
-          start.boxes.length === 2 && 'md:grid-cols-2',
-          start.boxes.length > 2 && 'lg:grid-cols-3',
-        )}
-      >
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
         {start.boxes.map((box) => (
           <SkillsProductBox key={box.product} box={box} />
         ))}

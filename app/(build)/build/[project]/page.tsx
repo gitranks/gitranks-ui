@@ -12,7 +12,7 @@ import { isGithubLogin } from '@/utils/profile-refresh';
 /**
  * A project's page: the same for everyone, read from the cached project under its tag; the person's side is read
  * later in the browser. An address that is no live project (missing, removed, a draft, or a read that failed) answers
- * the site's not-found page, with a 404. The proxy closes every Build address to anyone Build is not open to.
+ * the site's not-found page, with a 404.
  */
 export const instant = false;
 

@@ -3,7 +3,6 @@
 import type { MetadataRoute } from 'next';
 import { cacheLife } from 'next/cache';
 
-import { loadBuildOpenToEveryone } from '@/lib/build/build-everyone.data';
 import { loadBuildProject } from '@/lib/build/project.data';
 import { loadBuildProjects } from '@/lib/build/projects.data';
 import { type BuildSitemapProject, buildSitemapEntries } from '@/lib/sitemap/build-sitemap';
@@ -20,17 +19,15 @@ async function readProjects(): Promise<BuildSitemapProject[]> {
 }
 
 /**
- * Build's public pages (`buildSitemapEntries`), only once Build is open to everyone: empty before, and the site's
- * index does not list it then. Kept for hours once it lists every project with its steps; for minutes while Build is
- * closed, with no project, or after a failed read, so the next read comes soon.
+ * Build's public pages (`buildSitemapEntries`). Kept for hours once it lists every project with its steps; for
+ * minutes with no project, or after a failed read, so the next read comes soon.
  */
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const open = await loadBuildOpenToEveryone();
-  const projects = open ? await readProjects() : [];
-  if (open && projects.length && projects.every((project) => project.base)) {
+  const projects = await readProjects();
+  if (projects.length && projects.every((project) => project.base)) {
     cacheLife('hours');
   } else {
     cacheLife('minutes');
   }
-  return buildSitemapEntries(projects, open);
+  return buildSitemapEntries(projects);
 }

@@ -88,7 +88,6 @@ export const SKILLS_PART_SCREENS: Screen[] = [
       'lib/skills/skills-fixes.ts',
       'lib/skills/skills-courses.ts',
       'lib/skills/skills-owner.ts',
-      'lib/skills/issue-numbers.ts',
     ],
     states: [
       tab('learner', 'A learner, as everyone sees the page', 3000, () => (

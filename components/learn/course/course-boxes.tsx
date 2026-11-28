@@ -372,7 +372,7 @@ function LastBox({
   box: CourseLastBox;
   lit: boolean;
   hints: boolean;
-  /** The course's slug: "Go further" names Build's project of the course, for a person Build is open to. */
+  /** The course's slug: "Go further" names Build's project of the course, for a signed-in person. */
   slug: string;
   /** Where "Fix a real issue" leads. */
   issuesHref: Route;

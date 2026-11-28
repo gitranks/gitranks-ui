@@ -21,12 +21,12 @@ import type { BuildCardSide } from '@/lib/build/home-card';
 import type { BuildHome } from '@/lib/build/types';
 
 /*
- * The site's header with Grow and the home page's block with Build's card, as a viewer Build is open to sees them:
- * the header's row, and the block for each viewer. While Build is closed to the viewer, both are today's.
+ * The site's header with Grow and the home page's block with Build's card, as every viewer sees them: the header's
+ * row, and the block for each viewer.
  */
 
-const NEW_TO_BUILD: BuildViewer = { open: true, hasBuild: false };
-const BUILDER: BuildViewer = { open: true, hasBuild: true };
+const NEW_TO_BUILD: BuildViewer = { hasBuild: false };
+const BUILDER: BuildViewer = { hasBuild: true };
 
 const home = (fields: Partial<BuildHome>): BuildHome => ({ builds: [], tests: [], next: [], ...fields });
 const side = (fields: Partial<BuildHome>): BuildCardSide => ({ home: home(fields), builds: [], hasBuild: true });

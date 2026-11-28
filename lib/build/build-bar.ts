@@ -43,7 +43,7 @@ export const VISITOR_BUILD_BAR: BuildBarView = { tabs: ['home', 'projects'], tes
 const testsOf = (tests: number | null | undefined): number | null =>
   typeof tests === 'number' && Number.isFinite(tests) && tests >= 1 ? Math.floor(tests) : null;
 
-/** The bar for the API's answer; a visitor's for none (signed out, Build closed to them, or a failed read). */
+/** The bar for the API's answer; a visitor's for none (signed out, or a failed read). */
 export function buildBarViewOf(read: BuildBar | null | undefined): BuildBarView {
   if (!read) return VISITOR_BUILD_BAR;
   return {

@@ -69,8 +69,7 @@ const DAYS_UNDER: Record<SkillsKind, string> = {
 const DAYS_UNDER_WITH_BUILDS = 'with a fix, a step or a lesson';
 
 /**
- * Whether the numbers count built projects: a builder's, or a row with "projects built" in it. The API puts that figure
- * in the row only once Build is open to everyone, so until then every row is worded as without Build.
+ * Whether the numbers count built projects: a builder's, or a row with "projects built" in it.
  */
 export const countsBuildsOf = (numbers: Pick<SkillsNumbers, 'kind' | 'figures'>): boolean =>
   numbers.kind === 'BUILDER' ||

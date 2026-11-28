@@ -426,8 +426,8 @@ describe('the reads of Settings and the key page', () => {
       expect(learnReads.loadLearnEmailSettings).toHaveBeenCalledWith('octocat');
       expect(learnReads.loadLearnIssuesEmail).toHaveBeenCalledWith('octocat');
       expect(learnReads.loadLearnLessonIssuesEmail).toHaveBeenCalledWith('octocat');
-      // Build's row is not read before Build's emails are built.
-      expect(buildReads.loadBuildSettings).not.toHaveBeenCalled();
+      // Build's row is read for the person: the API answers none for someone with no build.
+      expect(buildReads.loadBuildSettings).toHaveBeenCalledWith('octocat');
     } finally {
       jar.value = undefined;
     }

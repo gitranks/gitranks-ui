@@ -5,7 +5,7 @@ import { buildReadResponse, buildViewerOf } from '@/lib/build/build-route';
 
 /**
  * Build's bar for the signed-in person, read in the browser after the page is up: `{ bar }`, null signed out (without
- * asking the API), when Build is not open to them, and on any failure. Never kept: a test taken changes it.
+ * asking the API), and on any failure. Never kept: a test taken changes it.
  */
 export const GET = auth(async function GET(req: AuthRequest) {
   const viewer = buildViewerOf(req);

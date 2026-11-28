@@ -25,22 +25,21 @@ describe('the Build sitemap', () => {
         true,
       ),
     );
-    expect(urls.slice(0, 5)).toEqual([
+    expect(urls.slice(0, 4)).toEqual([
       ['/build', 0.7],
       ['/build/projects', 0.7],
-      ['/build/about', 0.5],
       ['/build/mcp-server', 0.7],
       [`/build/mcp-server/${mcpServerBase[0].slug}`, 0.6],
     ]);
-    expect(urls).toHaveLength(3 + 1 + mcpServerBase.length + 1);
+    expect(urls).toHaveLength(2 + 1 + mcpServerBase.length + 1);
     expect(urls.at(-1)).toEqual(['/build/web-server', 0.7]);
     for (const step of mcpServerSdkPart.steps) expect(urls).not.toContainEqual([`/build/mcp-server/${step.slug}`, 0.6]);
     const all = urls.map(([url]) => String(url));
     expect(all.some((url) => /\/(mine|start|test)(\/|$)/.test(url))).toBe(false);
   });
 
-  it('lists the three pages with no project, and leaves out a slug no project can have, or one twice', () => {
-    expect(pathsOf(buildSitemapEntries([], true))).toHaveLength(3);
+  it('lists the two pages with no project, and leaves out a slug no project can have, or one twice', () => {
+    expect(pathsOf(buildSitemapEntries([], true))).toHaveLength(2);
     const urls = pathsOf(
       buildSitemapEntries(
         [
@@ -52,7 +51,7 @@ describe('the Build sitemap', () => {
         true,
       ),
     );
-    expect(urls.slice(3)).toEqual([
+    expect(urls.slice(2)).toEqual([
       ['/build/web-server', 0.7],
       ['/build/web-server/a-socket', 0.6],
     ]);

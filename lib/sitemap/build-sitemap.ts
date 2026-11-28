@@ -1,7 +1,6 @@
 import type { MetadataRoute } from 'next';
 
 import {
-  BUILD_ABOUT_PATH,
   BUILD_HOME_PATH,
   BUILD_PROJECTS_PATH,
   buildProjectPath,
@@ -16,8 +15,8 @@ import { sitemapEntry } from '@/lib/sitemap/sitemap-url';
 export type BuildSitemapProject = { slug: string; base: Pick<BuildProjectPage['base'][number], 'slug'>[] | null };
 
 /**
- * GitRanks Build's pages for search engines: Home, Projects and How Build works, then each live project and each step
- * of its base. A part's steps, the tests and a person's own pages (My builds, the start flow) are left out. A project
+ * GitRanks Build's pages for search engines: Home and Projects, then each live project and each step
+ * of its base. How Build works (its canonical address is Home), a part's steps, the tests and a person's own pages (My builds, the start flow) are left out. A project
  * whose page could not be read keeps its own address, without its steps. Nothing at all while Build is not open to
  * everyone: until then every Build page is kept out of search engines.
  */
@@ -35,7 +34,6 @@ export function buildSitemapEntries(
   return [
     sitemapEntry(BUILD_HOME_PATH, { priority: 0.7 }),
     sitemapEntry(BUILD_PROJECTS_PATH, { priority: 0.7 }),
-    sitemapEntry(BUILD_ABOUT_PATH, { priority: 0.5 }),
     ...live.flatMap((project) => [
       sitemapEntry(buildProjectPath(project.slug), { priority: 0.7 }),
       ...(project.base ?? [])

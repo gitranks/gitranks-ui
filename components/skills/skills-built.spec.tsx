@@ -97,5 +97,14 @@ describe('the Built section', () => {
     const page = ownerBuildsMine.page as SkillsPage;
     const { root } = draw(<SkillsPageView page={page} now={SKILLS_NOW} />);
     expect(root.querySelectorAll('[data-skills-built]')).toHaveLength(1);
+    expect(root.querySelector('[data-skills-built-only-you]')).toBeNull();
+  });
+
+  it('says so when only its owner sees it, until Build is open to everyone', () => {
+    const page = ownerBuildsMine.page as SkillsPage;
+    const { root } = draw(<SkillsPageView page={page} now={SKILLS_NOW} builtOnlyYou />);
+    expect(root.querySelector('[data-skills-built-only-you]')?.textContent).toBe(
+      'Only you see this section until Build is open to everyone.',
+    );
   });
 });

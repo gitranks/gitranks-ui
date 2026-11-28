@@ -8,6 +8,7 @@ import { BUILD_COLUMN } from '@/components/build/column';
 import { BUILD_CODE_REPOSITORY_PUBLIC } from '@/lib/build/built-parts';
 import { BUILD_PROJECTS_PATH, buildCoursePath } from '@/lib/build/paths';
 import { boxBuildOf, needRowsOf, type ProjectSide, projectFactsOf, whatNextOf } from '@/lib/build/project';
+import { courseDoorLineOf, courseRowsOf, lessonsWordsOf, type ProjectCourseRow } from '@/lib/build/project-courses';
 import { buildBaseUrlOf } from '@/lib/build/step-page';
 import type { BuildMine, BuildProjectPage } from '@/lib/build/types';
 import { cn } from '@/lib/utils';
@@ -52,9 +53,23 @@ function ProjectHead({ project }: { project: BuildProjectPage }) {
   );
 }
 
-/** "What next", for a built project: only the doors that lead somewhere; none, and the section is not there. */
-export function WhatNext({ project, build }: { project: BuildProjectPage; build: BuildMine }) {
-  const doors = whatNextOf(project, build);
+/**
+ * "What next", for a built project: only the doors that lead somewhere; none, and the section is not there. The door
+ * to a course says how many lessons it has, when Learn's list says so.
+ */
+export function WhatNext({
+  project,
+  build,
+  courses = courseRowsOf(project, []),
+}: {
+  project: BuildProjectPage;
+  build: BuildMine;
+  courses?: readonly ProjectCourseRow[];
+}) {
+  const first = courses[0];
+  const doors = whatNextOf(project, build).map((door) =>
+    first && door.href === buildCoursePath(first.slug) ? { ...door, line: courseDoorLineOf(first) } : door,
+  );
   if (!doors.length) return null;
   return (
     <section data-project-next aria-labelledby="next-title" className="flex flex-col gap-3">
@@ -99,9 +114,8 @@ function WhatYouWillHave({ project }: { project: BuildProjectPage }) {
   );
 }
 
-/** Before you start: the Learn courses that help. Advice, never a gate. */
-function BeforeYouStart({ project }: { project: BuildProjectPage }) {
-  const { courses } = project;
+/** Before you start: the Learn courses that help, each with its line and lessons when known. Advice, never a gate. */
+function BeforeYouStart({ courses }: { courses: readonly ProjectCourseRow[] }) {
   if (!courses.length) return null;
   return (
     <section data-project-courses aria-labelledby="before-title" className="flex flex-col gap-3">
@@ -116,19 +130,31 @@ function BeforeYouStart({ project }: { project: BuildProjectPage }) {
         </p>
       </div>
       <ul className={LIST}>
-        {courses.map((course, index) => (
-          <li key={course.slug} className={cn(index > 0 && 'border-t')}>
-            <Link
-              href={buildCoursePath(course.slug)}
-              className="flex items-center justify-between gap-3 p-3 hover:bg-accent"
-            >
-              <span className="text-sm font-medium">{course.name}</span>
-              <span className="text-muted-foreground">
-                <ChevronRight aria-hidden="true" className="size-4" />
-              </span>
-            </Link>
-          </li>
-        ))}
+        {courses.map((course, index) => {
+          const lessons = lessonsWordsOf(course.lessons);
+          return (
+            <li key={course.slug} className={cn(index > 0 && 'border-t')}>
+              <Link
+                href={buildCoursePath(course.slug)}
+                className="flex items-center justify-between gap-3 p-3 hover:bg-accent"
+              >
+                <span className="flex min-w-0 flex-col gap-0.5">
+                  <span className="text-sm font-medium">{course.name}</span>
+                  {course.line && <span className="text-sm text-muted-foreground">{course.line}</span>}
+                </span>
+                {lessons ? (
+                  <span data-project-course-lessons className="text-xs whitespace-nowrap text-muted-foreground">
+                    {lessons}
+                  </span>
+                ) : (
+                  <span className="text-muted-foreground">
+                    <ChevronRight aria-hidden="true" className="size-4" />
+                  </span>
+                )}
+              </Link>
+            </li>
+          );
+        })}
       </ul>
     </section>
   );
@@ -162,11 +188,18 @@ export type ProjectViewProps = {
   openParts?: readonly string[];
   /** A browser with a session is reading the person's side: what may change stays hidden in its place. */
   reading?: boolean;
+  /** The Learn courses that help, with what Learn's list says of each; the project's names alone without it. */
+  courses?: readonly ProjectCourseRow[];
+  /** The signed-in person's GitHub login: a built project's Share and Put it on GitHub name it. */
+  login?: string | null;
+  /** Whether a built project offers Share (once Build is open to everyone); the catalogue draws it. */
+  share?: boolean;
 };
 
 /** A project's page, for whoever reads it. */
-export function ProjectView({ project, side, openParts, reading = false }: ProjectViewProps) {
+export function ProjectView({ project, side, openParts, reading = false, courses, login, share }: ProjectViewProps) {
   const build = boxBuildOf(side);
+  const courseRows = courses ?? courseRowsOf(project, []);
   const starting = !build;
   // The code of the person's build's language, else of the project's first language.
   const codeLanguage = build?.language ?? project.languages[0];
@@ -181,11 +214,11 @@ export function ProjectView({ project, side, openParts, reading = false }: Proje
         )}
         aria-busy={reading || undefined}
       >
-        <ProjectBox project={project} side={side} />
-        {build?.state.kind === 'built' && <WhatNext project={project} build={build} />}
+        <ProjectBox project={project} side={side} login={login} share={share} />
+        {build?.state.kind === 'built' && <WhatNext project={project} build={build} courses={courseRows} />}
         {starting && <WhatYouWillHave project={project} />}
         <ProjectSteps project={project} build={build} openParts={openParts} />
-        {starting && <BeforeYouStart project={project} />}
+        {starting && <BeforeYouStart courses={courseRows} />}
         {starting && <WhatYouNeed project={project} />}
         <p className="m-0 text-xs text-muted-foreground">
           Written and checked by GitRanks

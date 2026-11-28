@@ -6,6 +6,7 @@ import { type ReactNode, useEffect, useState } from 'react';
 
 import { LeftColumnContainer, PageContainer } from './profile-page-backbone';
 import { OwnerStrip, SkillsHeading, StripRow, useSkillsOwner } from './skills-owner';
+import { useBuildViewer } from '@/components/build/build-viewer';
 import { SkillsMissing } from '@/components/skills/skills-missing';
 import { SkillsPageView } from '@/components/skills/skills-page-view';
 import { SkillsStart } from '@/components/skills/skills-start';
@@ -28,6 +29,8 @@ export function SkillsMissingScreen() {
   const login = loginFromPath(params.login ?? '');
   const { owner, view, pending, toggle, sessionLoading } = useSkillsOwner(login);
   const layer = owner && view ? ownerLayerOf(view.mine, false) : { kind: 'none' as const };
+  // Build's box is on the page only while Build is open to the owner, as the header's Grow menu.
+  const { open: build } = useBuildViewer();
 
   // The page's title is the same for everyone ("No Skills page"); its owner reads their own page under its own name.
   useEffect(() => {
@@ -40,7 +43,7 @@ export function SkillsMissingScreen() {
         <SkillsHeading />
         <div className="flex flex-col gap-8">
           <OwnerStrip login={login} mine={layer.mine} pending={pending} toggle={toggle} />
-          <SkillsStart mine={layer.mine} />
+          <SkillsStart mine={layer.mine} build={build} />
         </div>
       </>
     );

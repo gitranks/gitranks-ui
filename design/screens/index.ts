@@ -5,6 +5,7 @@ import { BUILD_DOORS_SCREENS } from './build-doors';
 import { BUILD_HOME_SCREENS } from './build-home';
 import { BUILD_MINE_SCREENS } from './build-mine';
 import { BUILD_PROJECT_SCREENS } from './build-project';
+import { BUILD_SHARE_SCREENS } from './build-share';
 import { BUILD_SITE_SCREENS } from './build-site';
 import { BUILD_SKILLS_SCREENS } from './build-skills';
 import { BUILD_START_SCREENS } from './build-start';
@@ -54,6 +55,7 @@ export const SCREENS: Screen[] = [
   ...BUILD_TEST_SCREENS,
   ...BUILD_SITE_SCREENS,
   ...BUILD_SKILLS_SCREENS,
+  ...BUILD_SHARE_SCREENS,
   ...BUILD_DOORS_SCREENS,
   ...ADMIN_SCREENS,
 ];

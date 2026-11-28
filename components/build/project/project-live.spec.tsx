@@ -21,6 +21,8 @@ vi.mock('next/link', () => ({
 }));
 const hint = vi.hoisted(() => ({ present: false }));
 vi.mock('@/lib/session-hint', () => ({ hasSessionHint: () => hint.present }));
+// Who is signed in, for a built project's Share and Put it on GitHub.
+vi.mock('next-auth/react', () => ({ useSession: () => ({ data: null, status: 'unauthenticated' }) }));
 // The zone the person's days are counted in, as the API's route answers it; and the note that sends the browser's zone,
 // which these pages no longer draw (the zone is saved before their reads).
 // The save of the browser's zone, when it is new, which the reads wait for: settled at once unless a test holds it.

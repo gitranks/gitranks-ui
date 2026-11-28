@@ -2,6 +2,7 @@ import type { Route } from 'next';
 
 import type { SkillsMine, SkillsNumbers, SkillsState } from './skills.types';
 import { countOf } from './skills-figures';
+import { BUILD_HOME_PATH, BUILD_PROJECTS_PATH } from '@/lib/build/paths';
 import { LEARN_HOME_PATH, LEARN_PROGRESS_PATH } from '@/lib/learn/paths';
 import { ABOUT_PATH, WORKSPACE_PATHS } from '@/lib/workspace/paths';
 import type { LearnFixMade } from '@/lib/workspace/pull-request-page.types';
@@ -23,8 +24,11 @@ export type StripWords = {
   progress: Route | null;
 };
 
-/** The strip at the top of the owner's own page, in every state; Learn's progress for someone who learns. */
-export function stripOf(mine: Pick<SkillsMine, 'state' | 'usesLearn'>): StripWords {
+/**
+ * The strip at the top of the owner's own page, in every state; Learn's progress for someone who learns. `build`:
+ * Build is open to the owner, so a built project is one more way to fill an empty page.
+ */
+export function stripOf(mine: Pick<SkillsMine, 'state' | 'usesLearn'>, build = false): StripWords {
   const progress = mine.usesLearn ? LEARN_PROGRESS_PATH : null;
   switch (mine.state) {
     case 'PUBLIC':
@@ -34,47 +38,64 @@ export function stripOf(mine: Pick<SkillsMine, 'state' | 'usesLearn'>): StripWor
     default:
       return {
         strong: 'Only you can see this page',
-        rest: ', until you send a pull request or learn a lesson.',
+        rest: build
+          ? ', until you send a pull request, build a project or learn a lesson.'
+          : ', until you send a pull request or learn a lesson.',
         actions: [],
         progress: null,
       };
   }
 }
 
+/** The products a box is about: the two that make fixes, and Build. */
+export type SkillsProduct = LearnFixMade | 'BUILD';
+
 /** A product's box: its promotion, or the step that puts the first thing on the page; "Only you see this" at the end. */
-export type ProductBox = { product: LearnFixMade; mode: 'promo' | 'step'; onlyYou: boolean };
+export type ProductBox = { product: SkillsProduct; mode: 'promo' | 'step'; onlyYou: boolean };
 
 /** The page for someone with nothing on it yet: its heading and line, whether the list's numbers show, its boxes. */
 export type StartWords = { heading: string; line: string; numbers: boolean; boxes: ProductBox[] };
 
 /**
- * `NEW` (uses neither product) and `NOTHING_YET` (uses one or both, nothing to show): the heading, the line, the box
- * about our list of issues on `NEW` alone, then one box for each product, a step for a product the person uses. Null
- * for a page with something on it.
+ * `NEW` (uses no product) and `NOTHING_YET` (uses one or more, nothing to show): the heading, the line, the box about
+ * our list of issues on `NEW` alone, then one box for each product, a step for a product the person uses. With
+ * `build` (Build is open to the owner) the three boxes are Learn, Build, Contribute, of equal weight; without it, Build
+ * is not named and the two boxes keep their order. Null for a page with something on it.
  */
-export function startOf(mine: Pick<SkillsMine, 'state' | 'usesContribute' | 'usesLearn'>): StartWords | null {
+export function startOf(
+  mine: Pick<SkillsMine, 'state' | 'usesContribute' | 'usesLearn'> & Partial<Pick<SkillsMine, 'usesBuild'>>,
+  build = false,
+): StartWords | null {
   if (mine.state !== 'NEW' && mine.state !== 'NOTHING_YET') return null;
-  const boxes: ProductBox[] = [
-    {
-      product: 'CONTRIBUTE',
-      mode: mine.state === 'NOTHING_YET' && mine.usesContribute ? 'step' : 'promo',
-      onlyYou: false,
-    },
-    {
-      product: 'LEARN',
-      mode: mine.state === 'NOTHING_YET' && mine.usesLearn ? 'step' : 'promo',
-      onlyYou: false,
-    },
-  ];
+  const empty = mine.state === 'NOTHING_YET';
+  const boxOf = (product: SkillsProduct, uses: boolean): ProductBox => ({
+    product,
+    mode: empty && uses ? 'step' : 'promo',
+    onlyYou: false,
+  });
+  const contribute = boxOf('CONTRIBUTE', mine.usesContribute);
+  const learn = boxOf('LEARN', mine.usesLearn);
+  if (build) {
+    const uses = [mine.usesLearn, mine.usesBuild === true, mine.usesContribute].filter(Boolean).length;
+    const line =
+      'Fixes that real projects merged, projects you built, and lessons you learned: a page you can show an employer.';
+    return {
+      heading: 'This page shows what you fix, build and learn with GitRanks',
+      line: empty && uses > 1 ? `${line} There are three ways to fill it, and you can use them all.` : line,
+      // The approved page for someone new is the three boxes alone.
+      numbers: false,
+      boxes: [learn, boxOf('BUILD', mine.usesBuild === true), contribute],
+    };
+  }
   const line = 'Fixes that real projects merged, and lessons you learned: a page you can show an employer.';
   return {
     heading: 'This page shows what you fix and learn with GitRanks',
     line:
-      mine.state === 'NOTHING_YET' && mine.usesContribute && mine.usesLearn
+      empty && mine.usesContribute && mine.usesLearn
         ? `${line} There are two ways to fill it, and you can use both.`
         : line,
     numbers: mine.state === 'NEW',
-    boxes,
+    boxes: [contribute, learn],
   };
 }
 
@@ -91,7 +112,7 @@ export function otherBoxOf(mine: Pick<SkillsMine, 'state' | 'usesContribute' | '
 
 /** A product box's words, the same on every page that draws it. */
 export const PRODUCT_BOX: Record<
-  LearnFixMade,
+  SkillsProduct,
   {
     name: string;
     who: string;
@@ -128,6 +149,20 @@ export const PRODUCT_BOX: Record<
       href: LEARN_HOME_PATH,
     },
   },
+  BUILD: {
+    name: 'GitRanks Build',
+    who: 'For developers who want to make a real thing and know how it works inside.',
+    points: [
+      'Your AI agent builds a small project with you, one step at a time.',
+      'A short test at the end. Every project you build shows on this page.',
+    ],
+    promo: { label: 'See GitRanks Build', href: BUILD_HOME_PATH },
+    step: {
+      text: 'No project built yet. The first one you build shows here.',
+      label: 'Pick a project',
+      href: BUILD_PROJECTS_PATH,
+    },
+  },
 };
 
 /** The line the owner reads on the overview's block of a page only they see; null on a page everyone sees. */
@@ -137,14 +172,32 @@ export function blockOwnerLineOf(state: SkillsState): { text: string; link: stri
   return null;
 }
 
+/** How many built projects the numbers count: their "projects built" figure, 0 without one. */
+export function builtCountOf(numbers: Partial<Pick<SkillsNumbers, 'figures'>>): number {
+  const figure = numbers.figures?.find((each) => each.key === 'PROJECTS_BUILT');
+  const value = figure?.value ?? 0;
+  return Number.isInteger(value) && value > 0 ? value : 0;
+}
+
 /**
- * The block's link to the tab, naming what is listed there: "All 6 fixes", "All 3 courses", "All fixes and courses",
- * or "See the fix" and "See the course" for one; no link with nothing listed.
+ * The block's link to the tab, naming what is listed there, in the tab's order (fixes, projects, courses): "All 6
+ * fixes", "All 3 projects", "All 3 courses", "All fixes and courses", "All fixes, projects and courses", or "See the
+ * fix", "See the project" and "See the course" for one; no link with nothing listed. Built projects count once the
+ * numbers carry them.
  */
-export function blockLinkOf(numbers: Pick<SkillsNumbers, 'fixes' | 'courses'>): string | null {
+export function blockLinkOf(
+  numbers: Pick<SkillsNumbers, 'fixes' | 'courses'> & Partial<Pick<SkillsNumbers, 'figures'>>,
+): string | null {
   const { fixes, courses } = numbers;
-  if (fixes > 0 && courses > 0) return 'All fixes and courses';
-  if (fixes > 0) return fixes === 1 ? 'See the fix' : `All ${countOf(fixes)} fixes`;
-  if (courses > 0) return courses === 1 ? 'See the course' : `All ${countOf(courses)} courses`;
-  return null;
+  const builds = builtCountOf(numbers);
+  const listed = [
+    { count: fixes, one: 'fix', many: 'fixes' },
+    { count: builds, one: 'project', many: 'projects' },
+    { count: courses, one: 'course', many: 'courses' },
+  ].filter((kind) => kind.count > 0);
+  const [only] = listed;
+  if (!only) return null;
+  if (listed.length === 1) return only.count === 1 ? `See the ${only.one}` : `All ${countOf(only.count)} ${only.many}`;
+  const names = listed.map((kind) => kind.many);
+  return `All ${names.slice(0, -1).join(', ')} and ${names.at(-1)}`;
 }

@@ -82,12 +82,13 @@ export function SkillsIssuesBox({ numbers }: { numbers: SkillsIssueNumbers | nul
 }
 
 /**
- * The owner's page while it has nothing on it: `NEW` (uses neither product) says what this area is for, with the box
- * about our list of issues and one box for each product; `NOTHING_YET` gives each product the owner uses the step that
- * puts the first thing on the page. Nothing for a page with something on it.
+ * The owner's page while it has nothing on it: `NEW` (uses no product) says what this area is for, with one box for
+ * each product (and, while Build is not open to them, the box about our list of issues); `NOTHING_YET` gives each
+ * product the owner uses the step that puts the first thing on the page. `build`: Build is open to the owner, so its
+ * box stands between Learn's and Contribute's. Nothing for a page with something on it.
  */
-export function SkillsStart({ mine }: { mine: SkillsMine }) {
-  const start = startOf(mine);
+export function SkillsStart({ mine, build = false }: { mine: SkillsMine; build?: boolean }) {
+  const start = startOf(mine, build);
   if (!start) return null;
   return (
     <div className="flex flex-col gap-8" data-skills-start={mine.state}>
@@ -96,7 +97,13 @@ export function SkillsStart({ mine }: { mine: SkillsMine }) {
         <p className="m-0 max-w-[70ch] text-sm text-muted-foreground">{start.line}</p>
       </div>
       {start.numbers ? <SkillsIssuesBox numbers={mine.numbers} /> : null}
-      <div className={cn('grid grid-cols-1 gap-4', start.boxes.length > 1 && 'md:grid-cols-2')}>
+      <div
+        className={cn(
+          'grid grid-cols-1 gap-4',
+          start.boxes.length === 2 && 'md:grid-cols-2',
+          start.boxes.length > 2 && 'lg:grid-cols-3',
+        )}
+      >
         {start.boxes.map((box) => (
           <SkillsProductBox key={box.product} box={box} />
         ))}

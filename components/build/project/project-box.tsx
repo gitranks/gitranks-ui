@@ -4,8 +4,10 @@ import Link from 'next/link';
 import type { ReactNode } from 'react';
 
 import { ProjectSay } from './project-say';
+import { ProjectShareActions } from './project-share';
 import { ProjectSquares } from './project-squares';
 import { Button } from '@/components/ui/button';
+import { BUILD_OPEN_TO_EVERYONE } from '@/lib/build/built-parts';
 import { CONTINUE_SENTENCE, startedWords } from '@/lib/build/home';
 import { BUILD_ABOUT_PATH, buildStartPath, buildStepPath, buildTestPath } from '@/lib/build/paths';
 import {
@@ -319,7 +321,10 @@ function TestLeftBox({
   );
 }
 
-/** A built project: the date, the marks, and the gold test; or the optional part in progress. */
+/**
+ * A built project: the date, the marks, and the gold test; or the optional part in progress. Last, Share and Put it
+ * on GitHub, once the person's login is known.
+ */
 function BuiltBox({
   project,
   build,
@@ -327,6 +332,8 @@ function BuiltBox({
   standing,
   zone,
   tail,
+  login,
+  share,
 }: {
   project: BuildProjectPage;
   build: BuildMine;
@@ -335,6 +342,8 @@ function BuiltBox({
   standing: TestStanding | null;
   zone?: string;
   tail: ReactNode;
+  login: string | null;
+  share: boolean;
 }) {
   if (build.state.kind !== 'built') return null;
   const { builtAt, score, gold } = build.state;
@@ -421,6 +430,7 @@ function BuiltBox({
           )}
         </>
       )}
+      {login && <ProjectShareActions project={project} login={login} share={share} />}
     </Box>
   );
 }
@@ -471,8 +481,21 @@ function OtherBuild({
   );
 }
 
-/** The box "what to do now", for whoever reads the page. */
-export function ProjectBox({ project, side }: { project: BuildProjectPage; side: ProjectSide }) {
+/**
+ * The box "what to do now", for whoever reads the page. `login`: the signed-in person's, which a built project's Share
+ * and Put it on GitHub name. `share`: Share is offered, once Build is open to everyone.
+ */
+export function ProjectBox({
+  project,
+  side,
+  login = null,
+  share = BUILD_OPEN_TO_EVERYONE,
+}: {
+  project: BuildProjectPage;
+  side: ProjectSide;
+  login?: string | null;
+  share?: boolean;
+}) {
   const builds = side.kind === 'person' ? side.mine.builds : [];
   const build = builds[0];
   if (!build) return <StartBox project={project} side={side} />;
@@ -505,6 +528,8 @@ export function ProjectBox({ project, side }: { project: BuildProjectPage; side:
       standing={standing}
       zone={zone}
       tail={tail}
+      login={login}
+      share={share}
     />
   );
 }

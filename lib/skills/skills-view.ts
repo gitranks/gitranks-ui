@@ -41,6 +41,16 @@ export function builtShownOf(page: Pick<SkillsPage, 'built'>, layer: OwnerLayer)
   return layer.mine.page?.built ?? own;
 }
 
+/**
+ * Whether the Built rows a public page draws are its owner's own, from their view (`builtShownOf`): then only they see
+ * the section, under a strip that says everyone sees the page, and the section says so. Once Build is open to everyone
+ * the public answer carries the rows, and this is false by itself.
+ */
+export function builtOnlyYouOf(page: Pick<SkillsPage, 'built'>, layer: OwnerLayer): boolean {
+  if (page.built?.length || layer.kind !== 'strip') return false;
+  return Boolean(layer.mine.page?.built?.length);
+}
+
 /** The owner's view after hiding or showing: the API's answer, with the tab's mark as this browser knows it. */
 export const mineAfterOf = (before: SkillsMine, after: SkillsMine | null): SkillsMine =>
   after ? { ...after, tabNew: before.tabNew } : before;

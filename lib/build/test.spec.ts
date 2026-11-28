@@ -207,7 +207,7 @@ describe('what comes now', () => {
       title: 'What comes now',
       aside: null,
       pills: ['every-step'],
-      text: 'The gold test opens on 3 Dec, a week from today: 10 questions, and 8 right earns the gold mark. We will email you that day.',
+      text: 'The gold test opens on 3 Dec, a week from today: 10 questions, and 8 right earns the gold mark. We will email you that day, unless your Build reminders are off.',
       main: { kind: 'project' },
       share: true,
     });
@@ -308,7 +308,7 @@ describe('a test that cannot start', () => {
   it('the gold test before its day: the day it opens', () => {
     expect(closedWordsOf(goldTestClosed, buildBuilt, 'UTC')).toEqual({
       title: 'The gold test opens on 3 Dec',
-      text: 'It opens a week after you built the project. We will email you that day.',
+      text: 'It opens a week after you built the project. We will email you that day, unless your Build reminders are off.',
     });
     expect(closedWordsOf(goldTestClosed, testBuildOf(mineBuilt, goldTestClosed)).title).toBe(
       'The gold test opens on 3 Dec',

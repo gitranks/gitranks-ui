@@ -241,7 +241,7 @@ export function testBoxOf(
   now: Date,
   timeZone?: string,
 ): BuildTestBox {
-  const email = ' We will email you that day.';
+  const email = ' We will email you that day, unless your Build reminders are off.';
   const everyStep: BuildTestPill[] = build?.answeredEveryStep ? ['every-step'] : [];
   const wrong = result.items.length - result.right;
   if (result.passed && test.kind === 'gold') {
@@ -360,7 +360,7 @@ export function closedWordsOf(
   if (opens) {
     return {
       title: `The gold test opens on ${opens}`,
-      text: 'It opens a week after you built the project. We will email you that day.',
+      text: 'It opens a week after you built the project. We will email you that day, unless your Build reminders are off.',
     };
   }
   return { title: 'The gold test is not open yet', text: 'It opens a week after you built the project.' };

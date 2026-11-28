@@ -173,7 +173,7 @@ export function goldLineOf(gold: BuildGold, { waits, firstDay }: GoldLineContext
   // A day past the first one is after a failed try: the test opens again, as the project's box says.
   if (firstDay !== null && gold.date > firstDay) return `The gold test opens again on ${day}.`;
   const email = firstDay !== null && gold.date === firstDay;
-  return `The gold test opens on ${day}.${email ? ' We will email you that day.' : ''}`;
+  return `The gold test opens on ${day}.${email ? ' We will email you that day, unless your Build reminders are off.' : ''}`;
 }
 
 /** The optional parts built, when any: "2 of 5 optional parts", or "the optional part built" when it is the one. */

@@ -191,7 +191,7 @@ describe('My builds, from its fixtures', () => {
     const [row] = rows('built');
     expect(text(row)).toContain('TypeScript · built 26 Nov · 9 of 10 in the test · 2 of 5 optional parts');
     expect(text(row.querySelector('[data-build-gold]'))).toBe(
-      'The gold test opens on 3 Dec. We will email you that day.',
+      'The gold test opens on 3 Dec. We will email you that day, unless your Build reminders are off.',
     );
     expect(buttonsOf(row)).not.toContain('Take the gold test');
   });

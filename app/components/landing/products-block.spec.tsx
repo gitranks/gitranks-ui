@@ -3,24 +3,24 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
 
 import { HOME_NOW, homeProducts } from './__fixtures__/products-block';
-import { ProductsBlock } from './products-block';
+import { ProductsBlockGrow } from './products-block-grow';
 import type { HomeProducts } from './products-block-words';
 
 const LONG_DASH = String.fromCodePoint(0x2014);
 
 function draw(products: HomeProducts | null) {
   const root = document.createElement('div');
-  root.innerHTML = renderToStaticMarkup(<ProductsBlock products={products} now={HOME_NOW} />);
+  root.innerHTML = renderToStaticMarkup(<ProductsBlockGrow products={products} now={HOME_NOW} />);
   const text = root.textContent ?? '';
   expect(text).not.toContain(LONG_DASH);
   expect(text.toLowerCase()).not.toContain('claim');
-  expect(text).toContain('Contribute to open source, and learn from it');
-  expect(text).toContain('Both work with your own coding agent, on real issues in real projects.');
+  expect(text).toContain('Learn, build, and contribute to open source');
+  expect(text).toContain('All three work with your own coding agent, on real code.');
   const card = (product: string) => root.querySelector<HTMLAnchorElement>(`[data-home-card="${product}"]`);
   return { root, text, contribute: card('CONTRIBUTE'), learn: card('LEARN') };
 }
 
-describe('ProductsBlock', () => {
+describe("the home page's Learn and Contribute cards", () => {
   it('promotes both products to a visitor, each card one link', () => {
     const { contribute, learn } = draw(homeProducts.visitor);
     expect(contribute?.getAttribute('href')).toBe('/contribute');
@@ -109,46 +109,16 @@ describe('ProductsBlock', () => {
     ]);
   });
 
-  const drawn = (products: HomeProducts | null, contribute: boolean) => {
-    const root = document.createElement('div');
-    root.innerHTML = renderToStaticMarkup(<ProductsBlock products={products} now={HOME_NOW} contribute={contribute} />);
-    return {
-      cards: [...root.querySelectorAll('[data-home-card]')].map((card) => card.getAttribute('data-home-card')),
-      heading: root.querySelector('h2')?.textContent,
-      line: root.querySelector('h2 + p')?.textContent,
-      grid: root.querySelector('[data-home-card]')?.parentElement?.className ?? '',
-      text: root.textContent ?? '',
-    };
-  };
-
-  it("draws Learn's card alone, in one column under Learn's own words, while Contribute is not launched", () => {
-    for (const products of [null, homeProducts.learner]) {
-      const block = drawn(products, false);
-      expect(block.cards).toEqual(['LEARN']);
-      expect(block.heading).toBe('Learn from real open source');
-      expect(block.line).toBe('Short lessons, then real issues in real projects to use them on.');
-      expect(block.grid).not.toContain('md:grid-cols-2');
-      expect(block.text).not.toContain(LONG_DASH);
-    }
-  });
-
-  it("keeps Contribute's card, in two columns, for a person who uses Contribute before it is launched", () => {
-    const block = drawn(homeProducts.contributor, false);
-    expect(block.cards).toEqual(['CONTRIBUTE', 'LEARN']);
-    expect(block.heading).toBe('Contribute to open source, and learn from it');
-    expect(block.grid).toContain('md:grid-cols-2');
-  });
-
   it('takes its own id for a board that draws it twice', () => {
     const root = document.createElement('div');
-    root.innerHTML = renderToStaticMarkup(<ProductsBlock products={null} now={HOME_NOW} id="products-two" />);
+    root.innerHTML = renderToStaticMarkup(<ProductsBlockGrow products={null} now={HOME_NOW} id="products-two" />);
     expect(root.querySelector('section')?.getAttribute('aria-labelledby')).toBe('products-two');
     expect(root.querySelector('#products-two')?.tagName).toBe('H2');
     expect(root.querySelector('#products')).toBeNull();
   });
 });
 
-describe("ProductsBlock's Learn line", () => {
+describe("the home page's Learn line", () => {
   const live = [
     { slug: 'algorithms', name: 'Algorithms and data structures' },
     { slug: 'javascript-and-typescript', name: 'JavaScript and TypeScript' },
@@ -158,7 +128,7 @@ describe("ProductsBlock's Learn line", () => {
   ];
   const learnOf = (courses?: typeof live) => {
     const root = document.createElement('div');
-    root.innerHTML = renderToStaticMarkup(<ProductsBlock products={null} now={HOME_NOW} courses={courses} />);
+    root.innerHTML = renderToStaticMarkup(<ProductsBlockGrow products={null} now={HOME_NOW} courses={courses} />);
     return root.querySelector('[data-home-card="LEARN"]')?.textContent ?? '';
   };
 

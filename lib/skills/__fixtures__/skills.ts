@@ -4,7 +4,6 @@ import type {
   SkillsFigure,
   SkillsFix,
   SkillsGroup,
-  SkillsIssueNumbers,
   SkillsLesson,
   SkillsMine,
   SkillsNumbers,
@@ -364,27 +363,17 @@ export const longPage: SkillsPage = {
   fixes: { rows: contributorFixes, total: 26, next: 'cursor-6' },
 };
 
-/** The night's numbers of the list of issues, as the boards measured them. */
-export const skillsIssueNumbers: SkillsIssueNumbers = {
-  read: 2_340_000,
-  kept: 2_499,
-  at: '2026-11-24T03:40:00.000Z',
-  repos: 51_270,
-  aiReadsPerDay: 2_800,
-};
-
 const mine = (extra: Partial<SkillsMine> & Pick<SkillsMine, 'state'>): SkillsMine => ({
   page: null,
   usesContribute: false,
   usesLearn: false,
   usesBuild: false,
   tabNew: false,
-  numbers: null,
   ...extra,
 });
 
 export const skillsMine = {
-  new: mine({ state: 'NEW', tabNew: true, numbers: skillsIssueNumbers }),
+  new: mine({ state: 'NEW', tabNew: true }),
   nothingYetBoth: mine({ state: 'NOTHING_YET', usesContribute: true, usesLearn: true }),
   nothingYetContributor: mine({ state: 'NOTHING_YET', usesContribute: true }),
   nothingYetLearner: mine({ state: 'NOTHING_YET', usesLearn: true }),

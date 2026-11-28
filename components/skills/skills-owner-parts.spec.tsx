@@ -3,9 +3,9 @@ import type { ReactElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
 
-import { SkillsIssuesBox, SkillsProductBox, SkillsStart } from './skills-start';
+import { SkillsProductBox, SkillsStart } from './skills-start';
 import { SkillsStrip } from './skills-strip';
-import { skillsIssueNumbers, skillsMine } from '@/lib/skills/__fixtures__/skills';
+import { skillsMine } from '@/lib/skills/__fixtures__/skills';
 
 const LONG_DASH = String.fromCodePoint(0x2014);
 const HREF = 'https://gitranks.com/profile/octocat/skills';
@@ -77,18 +77,11 @@ describe('SkillsStart', () => {
   });
 });
 
-describe('SkillsProductBox and SkillsIssuesBox', () => {
+describe('SkillsProductBox', () => {
   it('marks the owner’s box about the other product', () => {
     const { text, root } = draw(<SkillsProductBox box={{ product: 'CONTRIBUTE', mode: 'promo', onlyYou: true }} />);
     expect(text).toContain('Only you see this');
     expect(text).toContain('See GitRanks Contribute');
     expect(root.querySelectorAll('li')).toHaveLength(2);
-  });
-
-  it('draws the box about the list with its four numbers, and without them', () => {
-    expect(draw(<SkillsIssuesBox numbers={skillsIssueNumbers} />).root.querySelectorAll('dt')).toHaveLength(4);
-    const bare = draw(<SkillsIssuesBox numbers={null} />);
-    expect(bare.root.querySelector('dl')).toBeNull();
-    expect(bare.text).toContain('Good issues are hard to find');
   });
 });

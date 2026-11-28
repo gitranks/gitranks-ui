@@ -1,6 +1,5 @@
 import type { LearnCourseCard, LearnCourseKind } from '@/lib/learn/course';
 import type { LearnDepth, LearnLessonLevel } from '@/lib/learn/lesson-page';
-import type { IssueNumbers } from '@/lib/workspace/masked-issue.types';
 import type { LearnFixMade, LearnIssueLesson } from '@/lib/workspace/pull-request-page.types';
 
 /**
@@ -143,9 +142,6 @@ export type SkillsBrief = { login: string; numbers: SkillsNumbers };
 /** A page of the logins whose Skills page search engines may index, for the sitemap. */
 export type SkillsLogins = { logins: string[]; next: string | null };
 
-/** The night's numbers of the list of issues, with the two the Skills page adds: each null until counted. */
-export type SkillsIssueNumbers = IssueNumbers & { repos: number | null; aiReadsPerDay: number | null };
-
 /** The owner's own view of their page, whatever its state. */
 export type SkillsMine = {
   state: SkillsState;
@@ -156,7 +152,6 @@ export type SkillsMine = {
   usesBuild: boolean;
   /** The tab's "New" mark, until the first visit. */
   tabNew: boolean;
-  numbers: SkillsIssueNumbers | null;
 };
 
 /** The browser's read of a person's numbers: null without a public page. */

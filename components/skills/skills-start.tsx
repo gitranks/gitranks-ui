@@ -2,8 +2,7 @@ import { Check } from 'lucide-react';
 import Link from 'next/link';
 
 import { Button } from '@/components/ui/button';
-import { issueCellsOf, issuesTextOf } from '@/lib/skills/issue-numbers';
-import type { SkillsIssueNumbers, SkillsMine } from '@/lib/skills/skills.types';
+import type { SkillsMine } from '@/lib/skills/skills.types';
 import { PRODUCT_BOX, type ProductBox, startOf } from '@/lib/skills/skills-owner';
 import { cn } from '@/lib/utils';
 
@@ -46,37 +45,6 @@ export function SkillsProductBox({ box }: { box: ProductBox }) {
           {action.label}
         </Link>
       </Button>
-    </section>
-  );
-}
-
-/** The box about our list of issues: why good issues are hard to find, how we read them, and four live numbers. */
-export function SkillsIssuesBox({ numbers }: { numbers: SkillsIssueNumbers | null }) {
-  const cells = issueCellsOf(numbers);
-  return (
-    <section aria-labelledby="skills-issues" className="flex flex-col gap-4 rounded-xl border bg-card p-5">
-      <div className="flex flex-col gap-1.5">
-        <h3 id="skills-issues" className="m-0 text-lg font-semibold">
-          We find the issues that really need a fix
-        </h3>
-        <p className="m-0 max-w-[82ch] text-sm text-muted-foreground">{issuesTextOf(numbers)}</p>
-      </div>
-      {cells.length ? (
-        <dl
-          className={cn(
-            'm-0 grid grid-cols-2 gap-4 border-t pt-4',
-            cells.length === 3 && 'sm:grid-cols-3',
-            cells.length === 4 && 'sm:grid-cols-4',
-          )}
-        >
-          {cells.map((cell) => (
-            <div key={cell.label} className="flex min-w-0 flex-col items-center gap-0.5 text-center">
-              <dt className="order-2 text-sm text-muted-foreground">{cell.label}</dt>
-              <dd className="order-1 m-0 font-mono text-2xl font-bold tabular-nums">{cell.value}</dd>
-            </div>
-          ))}
-        </dl>
-      ) : null}
     </section>
   );
 }

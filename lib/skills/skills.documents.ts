@@ -42,8 +42,7 @@ const pageOf = (build: boolean) => `login
 /** The owner's view's fields; with Build's unless `build` is false. */
 const mineOf = (build: boolean) => `state
   page { ${pageOf(build)} }
-  usesContribute usesLearn${build ? ' usesBuild' : ''} tabNew
-  numbers { read kept at repos aiReadsPerDay }`;
+  usesContribute usesLearn${build ? ' usesBuild' : ''} tabNew`;
 
 type Login = { login: string };
 
